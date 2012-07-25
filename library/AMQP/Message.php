@@ -1,5 +1,5 @@
 <?php
-namespace AMQP\Message;
+namespace AMQP;
 /**
  *
  */
@@ -8,6 +8,21 @@ use AMQP\Wire\GenericContent;
 /**
  *
  * A Message for use with the Channnel.basic_* methods.
+ *
+ * @property string $content_type
+ * @property string $content_encoding
+ * @property array  $application_headers
+ * @property string $delivery_mode
+ * @property string $priority
+ * @property string $correlation_id
+ * @property string $reply_to
+ * @property string $expiration
+ * @property string $message_id
+ * @property string $timestamp
+ * @property string $type
+ * @property string $user_id
+ * @property string $app_id
+ * @property string $cluster_id
  */
 class Message extends GenericContent
 {
@@ -28,9 +43,6 @@ class Message extends GenericContent
         "app_id" => "shortstr",
         "cluster_id" => "shortst"
     );
-
-    public $delivery_info;
-    public $body;
 
     public function __construct($body = '', $properties = null)
     {

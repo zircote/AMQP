@@ -1,9 +1,6 @@
 <?php
 
-define(
-    'AMQP_TEST_HOST',
-    'tcp://guest:guest@localhost:5672/'
-);
+define('AMQP_TEST_HOST','amqp://guest:guest@localhost:5672/');
 define('AMQP_DEBUG', false);
 
 

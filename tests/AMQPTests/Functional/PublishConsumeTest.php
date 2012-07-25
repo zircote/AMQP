@@ -2,8 +2,8 @@
 
 namespace AMQPTests\Functional;
 
-use AMQP\Connection\Connection;
-use AMQP\Message\Message;
+use AMQP\Connection;
+use AMQP\Message;
 
 class PublishConsumeTest extends AbstractTestCase
 {

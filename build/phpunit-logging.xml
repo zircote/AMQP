@@ -1,0 +1,35 @@
+<phpunit bootstrap="../tests/bootstrap.php"
+         colors="true"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="false"
+         convertWarningsToExceptions="true"
+         stopOnFailure="false"
+         syntaxCheck="true">
+    <testsuite name="AMQP Unit Test Suite">
+        <directory>../tests/AMQPTests/Unit</directory>
+    </testsuite>
+    <testsuite name="AMQP Functional Test Suite">
+        <directory>../tests/AMQPTests/Functional</directory>
+    </testsuite>
+    <logging>
+        <log type="coverage-html" target="coverage" title="PHP AMQP"
+             logIncompleteSkipped="true"
+             charset="UTF-8" yui="true" highlight="true" lowUpperBound="35"
+             highLowerBound="70"/>
+        <log type="coverage-clover" target="logs/clover.xml"
+             showUncoveredFiles="true"/>
+        <log type="junit" target="logs/junit.xml" logIncompleteSkipped="false"/>
+    </logging>
+    <filter>
+        <blacklist>
+            <directory suffix=".php">../</directory>
+        </blacklist>
+        <whitelist>
+            <directory suffix=".php">../library/</directory>
+            <exclude>
+                <directory suffix=".phtml">../</directory>
+                <file>../tests/bootstrap.php</file>
+            </exclude>
+        </whitelist>
+    </filter>
+</phpunit>

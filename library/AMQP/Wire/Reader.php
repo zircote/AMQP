@@ -51,10 +51,10 @@ class Reader
      * @param string $str
      * @param null   $bufferedInput
      */
-    public function __construct($str, $bufferedInput = null)
+    public function __construct($str, $bufferedInput = false)
     {
         $this->_str = $str;
-        if ($bufferedInput !== null) {
+        if ($bufferedInput) {
             $this->_bufferedInput = new BufferedInput($bufferedInput);
         }
         if (((int)4294967296) != 0) {

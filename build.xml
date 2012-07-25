@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="PHP AMQP Library" default="build" basedir=".">
+    <property name="rabbitmq.user" value="php_amqp_user"/>
+    <property name="rabbitmq.passwd" value="php_amqp_pass"/>
+    <property name="rabbitmq.vhost" value="php_amqp_vhost"/>
+    <property name="source" value="."/>
+    <target name="clean" description="Clean up and create artifact directories">
+        <delete dir="${basedir}/build/api"/>
+        <delete dir="${basedir}/build/code-browser"/>
+        <delete dir="${basedir}/build/coverage"/>
+        <delete dir="${basedir}/build/logs"/>
+        <delete dir="${basedir}/build/pdepend"/>
+        <mkdir dir="${basedir}/build/api"/>
+        <mkdir dir="${basedir}/build/code-browser"/>
+        <mkdir dir="${basedir}/build/coverage"/>
+        <mkdir dir="${basedir}/build/logs"/>
+        <mkdir dir="${basedir}/build/pdepend"/>
+    </target>
+    <target name="purge"
+            description="removes composer installed files from environment">
+        <delete dir="${basedir}/build/api"/>
+        <delete dir="${basedir}/build/code-browser"/>
+        <delete dir="${basedir}/build/coverage"/>
+        <delete dir="${basedir}/build/logs"/>
+        <delete dir="${basedir}/build/pdepend"/>
+        <exec executable="rm" failonerror="false">
+            <arg line="-rf composer.lock vendor"/>
+        </exec>
+    </target>
+    <target name="test.composer">
+        <available property="composer.exists" file="composer.phar"/>
+    </target>
+    <target name="install.composer" unless="composer.exists" depends="test.composer">
+        <exec executable="wget" failonerror="true">
+            <arg line="http://getcomposer.org/composer.phar"/>
+        </exec>
+    </target>
+    <target name="setup" description="Clean up and create artifact directories"
+            depends="install.composer">
+        <exec executable="php" failonerror="true">
+            <arg line="composer.phar install"/>
+        </exec>
+    </target>
+    <target name="phpunit" depends="config.rabbitmq"
+            description="Run unit tests using PHPUnit and generates junit.xml and clover.xml">
+        <exec executable="phpunit" failonerror="true">
+            <arg line="-c build/phpunit.xml"/>
+        </exec>
+    </target>
+    <target name="phpunit-report" depends="config.rabbitmq"
+            description="Run unit tests using PHPUnit and generates junit.xml and clover.xml">
+        <exec executable="phpunit" failonerror="true">
+            <arg line="-c build/phpunit-logging.xml"/>
+        </exec>
+    </target>
+    <target name="parallelTasks"
+            description="Run the pdepend, phpmd, phpcpd, phpcs, phpdoc and phploc tasks in parallel using a maximum of 2 threads.">
+        <parallel threadCount="2">
+            <sequential>
+                <antcall target="pdepend"/>
+                <antcall target="phpmd"/>
+            </sequential>
+            <antcall target="phpcpd"/>
+            <antcall target="phpcs"/>
+            <antcall target="phploc"/>
+            <antcall target="phpdoc"/>
+        </parallel>
+    </target>
+    <target name="pdepend"
+            description="Generate jdepend.xml and software metrics charts using PHP_Depend">
+        <exec executable="pdepend">
+            <arg line="--jdepend-xml=build/logs/jdepend.xml"/>
+            <arg line="--jdepend-chart=build/pdepend/dependencies.svg"/>
+            <arg line="--overview-pyramid=build/pdepend/overview-pyramid.svg"/>
+            <arg line="${source}/library"/>
+        </exec>
+    </target>
+    <target name="phpmd" description="Generate pmd.xml using PHPMD">
+        <exec executable="phpmd">
+            <arg line="library/"/>
+            <arg line="xml"/>
+            <arg line="build/phpmd.xml"/>
+            <arg line="--reportfile build/logs/pmd.xml"/>
+            <arg line="--exclude vendor/,doc/,scripts/,build/,tests/,data/,public/"/>
+            <arg line="--suffixes php"/>
+        </exec>
+    </target>
+    <target name="phpcpd" description="Generate pmd-cpd.xml using PHPCPD">
+        <exec executable="phpcpd">
+            <arg line="--log-pmd build/logs/pmd-cpd.xml"/>
+            <arg line="--suffixes php,phtml"/>
+            <arg line="--exclude vendor/,doc/,scripts/,build/,tests/,data/,public/"/>
+            <arg line="${source}"/>
+        </exec>
+    </target>
+    <target name="phpcpd-dev" description="Generate pmd-cpd.xml using PHPCPD">
+        <exec executable="phpcpd">
+            <arg line="--exclude vendor/,doc/,scripts/,build/,tests/,data/,public/"/>
+            <arg line="--suffixes php,phtml"/>
+            <arg line="${source}"/>
+        </exec>
+    </target>
+    <target name="phploc" description="Generate phploc.csv">
+        <exec executable="phploc">
+            <arg line="--log-csv build/logs/phploc.csv"/>
+            <arg line="--exclude vendor/,doc/,scripts/,build/,tests/,data/,public/"/>
+            <arg line="${source}"/>
+        </exec>
+    </target>
+    <target name="phpcs"
+            description="Generate checkstyle.xml using PHP_CodeSniffer">
+        <exec executable="phpcs">
+            <arg line="--report=checkstyle"/>
+            <arg line="--report-file=build/logs/checkstyle.xml"/>
+            <arg line="--standard=build/phpcs.xml"/>
+            <arg line="--extensions=php,phtml"/>
+            <arg line="--warning-severity=8"/>
+            <arg line="${source}"/>
+        </exec>
+    </target>
+    <target name="phpdoc"
+            description="Generate API documentation using PHPDoc2">
+        <exec executable="phpdoc">
+            <redirector output="/dev/null"/>
+            <arg line="-d ${source}"/>
+            <arg line="-t build/api"/>
+            <arg line="-i vendor/"/>
+            <arg line="-i build/"/>
+            <arg line="-i scripts/"/>
+            <arg line="-i docs/"/>
+            <arg line="-i demo/"/>
+            <arg line="-i benchmark/"/>
+        </exec>
+    </target>
+    <target name="phpcb"
+            description="Aggregate tool output with PHP_CodeBrowser">
+        <exec executable="phpcb">
+            <arg line="--log build/logs"/>
+            <arg line="--source ${source}"/>
+            <arg line="--output build/code-browser"/>
+        </exec>
+    </target>
+    <target name="config.rabbitmq">
+        <exec executable="sudo">
+            <arg line="rabbitmqctl add_vhost ${rabbitmq.vhost}"/>
+        </exec>
+        <exec executable="sudo">
+            <arg line="rabbitmqctl add_user ${rabbitmq.user} ${rabbitmq.passwd}"/>
+        </exec>
+        <exec executable="sudo">
+            <arg line="rabbitmqctl"/>
+            <arg line="set_permissions"/>
+            <arg line="-p ${rabbitmq.vhost}" />
+            <arg line="${rabbitmq.user}" />
+            <arg line="'.*' '.*' '.*'" />
+        </exec>
+    </target>
+    <target name="benchmark" depends="config.rabbitmq">
+        <sequential>
+            <exec executable="php">
+                <arg line="benchmark/producer.php 4000" />
+            </exec>
+            <exec executable="php">
+                <arg line="benchmark/consumer.php" />
+            </exec>
+        </sequential>
+    </target>
+    <target name="full" depends="clean,setup,phpunit-report,parallelTasks,phpcb"/>
+    <target name="build" depends="clean,setup,phpunit"/>
+</project>

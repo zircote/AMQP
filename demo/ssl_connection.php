@@ -1,23 +1,28 @@
 <?php
+/**
+ *
+ */
+require_once(__DIR__ . '/config.php');
 
-include(__DIR__ . '/config.php');
-use AMQP\Connection\AMQPSSLConnection;
+use AMQP\Connection;
 
-define('CERTS_PATH',
-  '/git/rabbitmqinaction/av_scratchwork/openssl');
 
-$ssl_options = array(
-      'cafile' => CERTS_PATH . '/rmqca/cacert.pem',
-      'local_cert' => CERTS_PATH . '/phpcert.pem',
-      'verify_peer' => true
-  );
+$options = array(
+    'ssl_options' => array(
+        'cafile' => CA_PATH ,
+        'local_cert' => CERT_PATH,
+        'verify_peer' => true
+    )
+);
 
-$conn = new AMQPSSLConnection(HOST, PORT, USER, PASS, VHOST, $ssl_options);
+$conn = new Connection(AMQP_SSL_RESOURCE, $options);
 
-function shutdown($conn){
-    $conn->close();
+register_shutdown_function(
+    function() use ($conn)
+    {
+        $conn->close();
+    }
+);
+
+while (true) {
 }
-
-register_shutdown_function('shutdown', $conn);
-
-while (true) {}

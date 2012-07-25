@@ -1,10 +1,10 @@
 <?php
 
-namespace AMQP\Channel;
+namespace AMQP;
 
-use AMQP\Helper\MiscHelper;
+use AMQP\Helper;
 use AMQP\Wire\Reader;
-use AMQP\Message\Message;
+use AMQP\Message;
 
 class AbstractChannel
 {
@@ -86,7 +86,7 @@ class AbstractChannel
     protected $_debug;
 
     /**
-     * @var \AMQP\Connection\Connection
+     * @var \AMQP\Connection
      */
     protected $_connection;
 
@@ -110,12 +110,11 @@ class AbstractChannel
      */
     protected $_autoDecode = false;
 
-
     /**
-     * @param \AMQP\Connection\Connection $connection
+     * @param \AMQP\Connection                $connection
      * @param string                          $channelId
      */
-    public function __construct(\AMQP\Connection\Connection $connection, $channelId)
+    public function __construct(\AMQP\Connection $connection, $channelId)
     {
         $this->_connection = $connection;
         $this->_channelId = $channelId;
@@ -132,6 +131,7 @@ class AbstractChannel
     }
 
     /**
+     * @todo tie in an event handler interface and decouple.
      * @param $methodSig
      * @param $args
      * @param $content
@@ -162,7 +162,7 @@ class AbstractChannel
     public function nextFrame()
     {
         if ($this->_debug) {
-            MiscHelper::debugMsg("waiting for a new frame");
+            Helper::debugMsg("waiting for a new frame");
         }
 
         if (!empty($this->_frameQueue)) {
@@ -184,7 +184,7 @@ class AbstractChannel
     }
 
     /**
-     * @return \AMQP\Message\Message
+     * @return \AMQP\Message
      * @throws \Exception
      */
     public function waitContent()
@@ -231,11 +231,11 @@ class AbstractChannel
 
         if ($this->_autoDecode && isset($msg->content_encoding)) {
             try {
-                $msg->body = $msg->body->decode($msg->content_encoding);
+                $msg->body = $msg->decode();
             }
             catch (\Exception $e) {
                 if ($this->_debug) {
-                    MiscHelper::debugMsg(
+                    Helper::debugMsg(
                         sprintf(
                             'Ignoring body decoding exception: %s',
                             $e->getMessage()
@@ -249,6 +249,8 @@ class AbstractChannel
     }
 
     /**
+     * @todo refactor
+     *
      * Wait for some expected AMQP methods and dispatch to them.
      * Unexpected methods are queued up for later calls to this PHP
      * method.
@@ -263,20 +265,20 @@ class AbstractChannel
     {
         if ($allowedMethods) {
             if ($this->_debug) {
-                MiscHelper::debugMsg(
+                Helper::debugMsg(
                     sprintf('waiting for %s', implode(", ", $allowedMethods))
                 );
             }
         } else {
             if ($this->_debug) {
-                MiscHelper::debugMsg('waiting for any method');
+                Helper::debugMsg('waiting for any method');
             }
         }
 
         //Process deferred methods
         foreach ($this->_methodQueue as $queueKey => $queuedMethod) {
             if ($this->_debug) {
-                MiscHelper::debugMsg(
+                Helper::debugMsg(
                     sprintf('checking queue method %s', $queueKey)
                 );
             }
@@ -288,10 +290,12 @@ class AbstractChannel
                 unset($this->_methodQueue[ $queueKey ]);
 
                 if ($this->_debug) {
-                    MiscHelper::debugMsg(
+                    Helper::debugMsg(
                         sprintf(
                             'Executing queued method: $methodSig: %s',
-                            self::$globalMethodNames[MiscHelper::methodSig($methodSig)]
+                            self::$globalMethodNames[ Helper::methodSig(
+                                $methodSig
+                            ) ]
                         )
                     );
                 }
@@ -329,9 +333,9 @@ class AbstractChannel
             $args = new Reader(substr($payload, 4));
 
             if ($this->_debug) {
-                MiscHelper::debugMsg(
-                    '> ' . $methodSig. ': ' .
-                    self::$globalMethodNames[ MiscHelper::methodSig($methodSig)]
+                Helper::debugMsg(
+                    '> ' . $methodSig . ': ' .
+                    self::$globalMethodNames[ Helper::methodSig($methodSig) ]
                 );
             }
 
@@ -350,10 +354,12 @@ class AbstractChannel
 
             // Wasn't what we were looking for? save it for later
             if ($this->_debug) {
-                MiscHelper::debugMsg(
+                Helper::debugMsg(
                     sprintf(
-                        'Queueing for later: %s: %s',$methodSig,
-                        self::$globalMethodNames[ MiscHelper::methodSig($methodSig)]
+                        'Queueing for later: %s: %s', $methodSig,
+                        self::$globalMethodNames[ Helper::methodSig(
+                            $methodSig
+                        ) ]
                     )
                 );
             }

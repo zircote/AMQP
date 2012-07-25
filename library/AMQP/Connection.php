@@ -1,12 +1,12 @@
 <?php
-namespace AMQP\Connection;
+namespace AMQP;
 /**
  *
  */
-use AMQP\Channel\AbstractChannel;
-use AMQP\Channel\Channel;
+use AMQP\AbstractChannel;
+use AMQP\Channel;
 use AMQP\Exception\ConnectionException;
-use AMQP\Helper\MiscHelper;
+use AMQP\Helper;
 use AMQP\Wire\Writer;
 use AMQP\Wire\Reader;
 
@@ -16,7 +16,7 @@ use AMQP\Wire\Reader;
 class Connection extends AbstractChannel
 {
 
-    const AMQP_LOGIN_METHOD_PLAIN = 'AMQPLAIN';
+    const AMQP_AUTH_PLAIN = 'AMQPLAIN';
     const AMQP_CHANNEL_MAX = 65535;
     const AMQP_FRAME_MAX = 131072;
 
@@ -38,7 +38,7 @@ class Connection extends AbstractChannel
      */
     protected $_options = array(
         'insist' => false,
-        'login_method' => self::AMQP_LOGIN_METHOD_PLAIN,
+        'login_method' => self::AMQP_AUTH_PLAIN,
         'login_response' => null,
         'locale' => 'en_US',
         'connection_timeout' => 3,
@@ -137,7 +137,7 @@ class Connection extends AbstractChannel
 
     /**
      *
-     * @param string|null $uri tcp://guest:guest@localhost:5672/vhost
+     * @param string|null $uri amqp://guest:guest@localhost:5672/vhost
      *
      * @param array $options
      */
@@ -157,10 +157,10 @@ class Connection extends AbstractChannel
     public function setUri($uri)
     {
         if(null === $uri){
-            $uri = 'tcp://localhost:5672/';
+            $uri = 'amqp://guest:guest@localhost:5672/';
         }
         $this->_uri = parse_url($uri);
-        if(($this->_uri['scheme'] != 'tcp' && $this->_uri['scheme'] != 'ssl')){
+        if(($this->_uri['scheme'] != 'amqp' && $this->_uri['scheme'] != 'amqps')){
             throw new \UnexpectedValueException(
                 sprintf(
                     'a valid URI scheme is request expected format [%s] '.
@@ -169,7 +169,12 @@ class Connection extends AbstractChannel
                 )
             );
         }
-        if($this->_uri['scheme'] === 'ssl'){
+        if(empty($this->_uri['user']) || empty($this->_uri['pass'])){
+            throw new \RuntimeException(
+                'AMQPLAIN Auth requires both a user and pass be specified'
+            );
+        }
+        if($this->_uri['scheme'] === 'amqps'){
             if(!extension_loaded('openssl')){
                 throw new \RuntimeException(
                     'SSL connection attempted however openssl extension is not loaded'
@@ -255,8 +260,17 @@ class Connection extends AbstractChannel
      */
     protected function _createSocket()
     {
+        if($this->_uri['scheme'] === 'amqp'){
+            $scheme = 'tcp';
+        } elseif($this->_uri['scheme'] === 'amqps'){
+            $scheme = 'ssl';
+        } else {
+            throw new \RuntimeException(
+                'Unknown Connection Scheme please select [amqp] or [amqps]'
+            );
+        }
         $remote = sprintf(
-            '%s://%s:%s', $this->_uri['scheme'],
+            '%s://%s:%s', $scheme,
             $this->_uri['host'],$this->_uri['port']
         );
         $args = array(
@@ -266,12 +280,12 @@ class Connection extends AbstractChannel
             $this->_options['connection_timeout'],
             STREAM_CLIENT_CONNECT
         );
-        if($this->_uri['scheme'] === 'ssl'){
+        if($scheme === 'ssl'){
             $ssl_context = stream_context_create();
             foreach ($this->_options['ssl_options'] as $k => $v) {
                 stream_context_set_option($ssl_context, 'ssl', $k, $v);
             }
-            $args = array_push($args, $ssl_context);
+            array_push($args, $ssl_context);
         }
         $this->_sock = call_user_func_array('stream_socket_client', $args);
         if (!$this->_sock) {
@@ -319,9 +333,9 @@ class Connection extends AbstractChannel
                     )
                 );
             }
-
+            $vhost = preg_replace('/^\//',null, $this->_uri['path']) ?: '/';
             $host = $this->_xOpen(
-                $this->_uri['path'], '', $this->_options['insist']
+                $vhost, '', $this->_options['insist']
             );
             if (!$host) {
                 return; // we weren't redirected
@@ -339,8 +353,8 @@ class Connection extends AbstractChannel
     protected function _write($data)
     {
         if ($this->_debug) {
-            MiscHelper::debugMsg(
-                '< [hex]:' . PHP_EOL . MiscHelper::hexdump(
+            Helper::debugMsg(
+                '< [hex]:' . PHP_EOL . Helper::hexdump(
                     $data, false, true, true
                 )
             );
@@ -467,9 +481,9 @@ class Connection extends AbstractChannel
         $this->_write($outboundPacket);
 
         if ($this->_debug) {
-            MiscHelper::debugMsg(
-                '< ' . MiscHelper::methodSig($methodSig) . ': ' .
-                AbstractChannel::$globalMethodNames[ MiscHelper::methodSig(
+            Helper::debugMsg(
+                '< ' . Helper::methodSig($methodSig) . ': ' .
+                AbstractChannel::$globalMethodNames[ Helper::methodSig(
                     $methodSig
                 ) ]
             );
@@ -543,7 +557,7 @@ class Connection extends AbstractChannel
      *
      * @param string|null $channelId
      *
-     * @return \AMQP\Channel\Channel
+     * @return \AMQP\Channel
      */
     public function channel($channelId = null)
     {
@@ -649,7 +663,7 @@ class Connection extends AbstractChannel
     {
         $this->knownHosts = $args->readShortstr();
         if ($this->_debug) {
-            MiscHelper::debugMsg("Open OK! known_hosts: " . $this->knownHosts);
+            Helper::debugMsg("Open OK! known_hosts: " . $this->knownHosts);
         }
 
         return null;
@@ -667,7 +681,7 @@ class Connection extends AbstractChannel
         $host = $args->readShortstr();
         $this->knownHosts = $args->readShortstr();
         if ($this->_debug) {
-            MiscHelper::debugMsg(
+            Helper::debugMsg(
                 sprintf(
                     'Redirected to [%s], known_hosts [%s]',
                     $host, $this->knownHosts
@@ -711,7 +725,7 @@ class Connection extends AbstractChannel
         $this->_locales = explode(" ", $args->readLongstr());
 
         if ($this->_debug) {
-            MiscHelper::debugMsg(
+            Helper::debugMsg(
                 sprintf(
                     'Start from server, version: %d.%d, properties: %s, '.
                     'mechanisms: %s, locales: %s',
@@ -803,7 +817,7 @@ class Connection extends AbstractChannel
     protected function _closeSocket()
     {
         if ($this->_debug) {
-            MiscHelper::debugMsg('closing socket');
+            Helper::debugMsg('closing socket');
         }
 
         @fclose($this->_sock);

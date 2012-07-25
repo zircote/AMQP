@@ -1,12 +1,12 @@
 <?php
-namespace AMQP\Helper;
+namespace AMQP;
 /**
  *
  */
 /**
  *
  */
-class MiscHelper
+class Helper
 {
 
     /**

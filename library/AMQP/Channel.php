@@ -1,12 +1,12 @@
 <?php
-namespace AMQP\Channel;
+namespace AMQP;
 /**
  *
  */
-use AMQP\Channel\AbstractChannel;
+use AMQP\AbstractChannel;
 use AMQP\Exception\ChannelException;
-use AMQP\Helper\MiscHelper;
-use AMQP\Helper\Protocol\FrameBuilder;
+use AMQP\Helper;
+use AMQP\FrameBuilder;
 
 /**
  *
@@ -72,7 +72,7 @@ class Channel extends AbstractChannel
     protected $_autoDecode;
 
     /**
-     * @var \AMQP\Helper\Protocol\FrameBuilder
+     * @var \AMQP\FrameBuilder
      */
     protected $frameBuilder;
 
@@ -89,7 +89,7 @@ class Channel extends AbstractChannel
         parent::__construct($connection, $channelId);
 
         if ($this->_debug) {
-            MiscHelper::debugMsg(sprintf('using channel_id: %s', $channelId));
+            Helper::debugMsg(sprintf('using channel_id: %s', $channelId));
         }
         $this->_autoDecode = $autoDecode;
 
@@ -231,7 +231,7 @@ class Channel extends AbstractChannel
     protected function _xOpen($outOfBand = '')
     {
         if ($this->_isOpen) {
-            return;
+            return null;
         }
 
         $args = $this->frameBuilder->xOpen($outOfBand);
@@ -250,7 +250,7 @@ class Channel extends AbstractChannel
     {
         $this->_isOpen = true;
         if ($this->_debug) {
-            MiscHelper::debugMsg('Channel open');
+            Helper::debugMsg('Channel open');
         }
     }
 
@@ -710,11 +710,11 @@ class Channel extends AbstractChannel
      * notify the client of a consumer message
      *
      * @param \AMQP\Wire\Reader     $args
-     * @param \AMQP\Message\Message $msg
+     * @param \AMQP\Message $msg
      */
     protected function _basicDeliver(
         \AMQP\Wire\Reader $args,
-        \AMQP\Message\Message $msg
+        \AMQP\Message $msg
     )
     {
         $consumerTag = $args->readShortstr();
@@ -780,11 +780,11 @@ class Channel extends AbstractChannel
      * provide client with a message
      *
      * @param \AMQP\Wire\Reader     $args
-     * @param \AMQP\Message\Message $msg
+     * @param \AMQP\Message $msg
      *
-     * @return \AMQP\Message\Message
+     * @return \AMQP\Message
      */
-    protected function _basicGetOk(\AMQP\Wire\Reader $args, \AMQP\Message\Message $msg)
+    protected function _basicGetOk(\AMQP\Wire\Reader $args, \AMQP\Message $msg)
     {
         $deliveryTag = $args->readLonglong();
         $redelivered = $args->readBit();
@@ -805,14 +805,14 @@ class Channel extends AbstractChannel
     /**
      * publish a message
      *
-     * @param \AMQP\Message\Message $msg
+     * @param \AMQP\Message $msg
      * @param string                    $exchange
      * @param string                    $routingKey
      * @param bool                      $mandatory
      * @param bool                      $immediate
      * @param null                      $ticket
      */
-    public function basicPublish(\AMQP\Message\Message $msg, $exchange = '', $routingKey = '',
+    public function basicPublish(\AMQP\Message $msg, $exchange = '', $routingKey = '',
                                   $mandatory = false, $immediate = false,
                                   $ticket = null)
     {

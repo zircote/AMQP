@@ -4,13 +4,13 @@
 // amqp_consumer_fanout_2.php to test
 
 include(__DIR__ . '/config.php');
-use AMQP\Connection\Connection;
+use AMQP\Connection;
 
 $exchange = 'fanout_example_exchange';
 $queue = 'fanout_group_2'; // Let RabbitMQ create a queue name
-$consumer_tag = 'consumer'. getmypid ();
+$consumer_tag = 'consumer' . getmypid();
 
-$conn = new Connection(HOST, PORT, USER, PASS, VHOST);
+$conn = new Connection(AMQP_RESOURCE);
 $ch = $conn->channel();
 
 /*
@@ -34,19 +34,20 @@ $ch->exchangeDeclare($exchange, 'fanout', false, false, true);
 
 $ch->queueBind($queue, $exchange);
 
-function process_message($msg) {
+function process_message($msg)
+{
 
     echo "\n--------\n";
     echo $msg->body;
     echo "\n--------\n";
 
-   $msg->delivery_info['channel']->
-        basic_ack($msg->delivery_info['delivery_tag']);
+    $msg->delivery_info[ 'channel' ]->
+        basic_ack($msg->delivery_info[ 'delivery_tag' ]);
 
     // Send a message with the string "quit" to cancel the consumer.
     if ($msg->body === 'quit') {
-        $msg->delivery_info['channel']->
-            basic_cancel($msg->delivery_info['consumer_tag']);
+        $msg->delivery_info[ 'channel' ]->
+            basic_cancel($msg->delivery_info[ 'consumer_tag' ]);
     }
 }
 
@@ -61,16 +62,20 @@ function process_message($msg) {
     callback: A PHP Callback
 */
 
-$ch->basicConsume($queue, $consumer_tag, false, false, false, false, 'process_message');
+$ch->basicConsume(
+    $queue, $consumer_tag, false, false, false, false, 'process_message'
+);
 
-function shutdown($ch, $conn){
-    $ch->close();
-    $conn->close();
-}
-register_shutdown_function('shutdown', $ch, $conn);
+register_shutdown_function(
+    function() use ($ch, $conn)
+    {
+        $ch->close();
+        $conn->close();
+    }
+);
 
 // Loop as long as the channel has callbacks registered
-while(count($ch->_callbacks)) {
+while (count($ch->callbacks)) {
     $ch->wait();
 }
-?>
+

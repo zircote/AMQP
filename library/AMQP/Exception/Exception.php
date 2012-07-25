@@ -3,8 +3,8 @@ namespace AMQP\Exception;
 /**
  *
  */
-use AMQP\Channel\AbstractChannel;
-use AMQP\Helper\MiscHelper;
+use AMQP\AbstractChannel;
+use AMQP\Helper;
 
 /**
  *
@@ -32,7 +32,7 @@ class Exception extends \Exception
 
         $this->amqpMethodSig = $methodSig;
 
-        $ms = MiscHelper::methodSig($methodSig);
+        $ms = Helper::methodSig($methodSig);
 
         $mn = isset(AbstractChannel::$globalMethodNames[ $ms ])
             ? AbstractChannel::$globalMethodNames[ $ms ]

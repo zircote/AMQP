@@ -1,9 +1,12 @@
 <?php
-
-namespace AMQP\Helper\Protocol;
-
+namespace AMQP;
+/**
+ *
+ */
 use AMQP\Wire\Writer;
-
+/**
+ *
+ */
 class FrameBuilder
 {
 
@@ -155,14 +158,14 @@ class FrameBuilder
         return $args;
     }
 
-    public function queueUnbind($queue, $exchange, $routing_key, $arguments,
+    public function queueUnbind($queue, $exchange, $routingKey, $arguments,
                                 $ticket)
     {
         $args = new Writer();
         $args->writeShort($ticket)
             ->writeShortStr($queue)
             ->writeShortStr($exchange)
-            ->writeShortStr($routing_key)
+            ->writeShortStr($routingKey)
             ->writeTable($arguments);
         return $args;
     }

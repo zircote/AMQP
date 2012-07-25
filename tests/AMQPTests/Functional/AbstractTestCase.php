@@ -25,12 +25,12 @@ class AbstractTestCase extends \PHPUnit_Framework_TestCase
     protected $queue_name = null;
 
     /**
-     * @var \AMQP\Connection\Connection
+     * @var \AMQP\Connection
      */
     protected $conn;
 
     /**
-     * @var \AMQP\Channel\Channel
+     * @var \AMQP\Channel
      */
     protected $ch;
 

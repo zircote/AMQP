@@ -1,13 +1,13 @@
 <?php
 
 include(__DIR__ . '/config.php');
-use AMQP\Connection\Connection;
+use AMQP\Connection;
 
 $exchange = 'router';
 $queue = 'msgs';
-$consumer_tag = 'consumer';
+$consumerTag = 'consumer';
 
-$conn = new Connection(HOST, PORT, USER, PASS, VHOST);
+$conn = new Connection(AMQP_RESOURCE);
 $ch = $conn->channel();
 
 /*
@@ -37,22 +37,6 @@ $ch->exchangeDeclare($exchange, 'direct', false, true, false);
 
 $ch->queueBind($queue, $exchange);
 
-function process_message($msg) {
-
-    echo "\n--------\n";
-    echo $msg->body;
-    echo "\n--------\n";
-
-    $msg->delivery_info['channel']->
-        basic_ack($msg->delivery_info['delivery_tag']);
-
-    // Send a message with the string "quit" to cancel the consumer.
-    if ($msg->body === 'quit') {
-        $msg->delivery_info['channel']->
-            basic_cancel($msg->delivery_info['consumer_tag']);
-    }
-}
-
 /*
     queue: Queue from where to get the messages
     consumer_tag: Consumer identifier
@@ -63,16 +47,34 @@ function process_message($msg) {
     callback: A PHP Callback
 */
 
-$ch->basicConsume($queue, $consumer_tag, false, false, false, false, 'process_message');
+$ch->basicConsume(
+    $queue, $consumerTag, false, false, false, false, function ($msg)
+    {
 
-function shutdown($ch, $conn){
-    $ch->close();
-    $conn->close();
-}
-register_shutdown_function('shutdown', $ch, $conn);
+        echo "\n--------\n";
+        echo $msg->body;
+        echo "\n--------\n";
+
+        $msg->delivery_info[ 'channel' ]->
+            basic_ack($msg->delivery_info[ 'delivery_tag' ]);
+
+        // Send a message with the string "quit" to cancel the consumer.
+        if ($msg->body === 'quit') {
+            $msg->delivery_info[ 'channel' ]->
+                basic_cancel($msg->delivery_info[ 'consumer_tag' ]);
+        }
+    }
+);
+
+register_shutdown_function(
+    function() use ($ch, $conn)
+    {
+        $ch->close();
+        $conn->close();
+    }
+);
 
 // Loop as long as the channel has callbacks registered
-while (count($ch->_callbacks)) {
+while (count($ch->callbacks)) {
     $ch->wait();
 }
-?>

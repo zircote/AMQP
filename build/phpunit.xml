@@ -1,0 +1,26 @@
+<phpunit bootstrap="../tests/bootstrap.php"
+         colors="true"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="false"
+         convertWarningsToExceptions="true"
+         stopOnFailure="false"
+         syntaxCheck="true">
+    <testsuite name="AMQP Unit Test Suite">
+        <directory>../tests/AMQPTests/Unit</directory>
+    </testsuite>
+    <testsuite name="AMQP Functional Test Suite">
+        <directory>../tests/AMQPTests/Functional</directory>
+    </testsuite>
+    <filter>
+        <blacklist>
+            <directory suffix=".php">../</directory>
+        </blacklist>
+        <whitelist>
+            <directory suffix=".php">../library/Swagger</directory>
+            <exclude>
+                <directory suffix=".phtml">../</directory>
+                <file>./bootstrap.php</file>
+            </exclude>
+        </whitelist>
+    </filter>
+</phpunit>

@@ -11,8 +11,8 @@
  */
 
 include(__DIR__ . '/config.php');
-use AMQP\Connection\Connection;
-use AMQP\Message\Message;
+use AMQP\Connection;
+use AMQP\Message;
 
 //suboptimal function to generate random content
 function generate_random_content($bytes)
@@ -23,8 +23,8 @@ function generate_random_content($bytes)
         $buffer = '';
         $len = 0;
         $max = $bytes;
-        while ($len < $max-1) {
-            $buffer .= fgets($handle, $max-$len);
+        while ($len < $max - 1) {
+            $buffer .= fgets($handle, $max - $len);
             $len = strlen($buffer);
         }
         fclose($handle);
@@ -36,15 +36,15 @@ function generate_random_content($bytes)
 $exchange = 'file_exchange';
 $queue = 'file_queue';
 
-$conn = new Connection(HOST, PORT, USER, PASS, VHOST);
+$conn = new Connection(AMQP_RESOURCE);
 $ch = $conn->channel();
 
 $ch->queueDeclare($queue, false, false, false, false);
 $ch->exchangeDeclare($exchange, 'direct', false, false, false);
 $ch->queueBind($queue, $exchange);
 
-$max = isset($argv[1]) ? (int) $argv[1] : 1;
-$msg_size = 1024*1024*5+1;
+$max = isset($argv[ 1 ]) ? (int)$argv[ 1 ] : 1;
+$msg_size = 1024 * 1024 * 5 + 1;
 $msg_body = generate_random_content($msg_size);
 
 $msg = new Message($msg_body);
@@ -63,4 +63,4 @@ $ch->basicPublish(new Message('quit'), $exchange);
 $ch->close();
 $conn->close();
 
-?>
+

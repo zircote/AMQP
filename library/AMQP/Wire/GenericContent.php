@@ -8,10 +8,25 @@ use AMQP\Wire\Writer;
 /**
  * Abstract base class for AMQP content.  Subclasses should override
  * the PROPERTIES attribute.
+ *
  */
 class GenericContent
 {
-    protected static $PROPERTIES = array(
+
+    /**
+     * @var string
+     */
+    public $delivery_info;
+
+    /**
+     * @var string
+     */
+    public $body;
+
+    /**
+     * @var array
+     */
+    protected static $_properties = array(
         "dummy" => "shortstr"
     );
 
@@ -20,7 +35,7 @@ class GenericContent
         if($prop_types)
             $this->prop_types = $prop_types;
         else
-            $this->prop_types = self::$PROPERTIES;
+            $this->prop_types = self::$_properties;
         $d = array();
         if ($props)
             $d = array_intersect_key($props, $this->prop_types);
@@ -52,16 +67,16 @@ class GenericContent
      * into a dictionary stored in this object as an attribute named
      * 'properties'.
      */
-    public function load_properties($raw_bytes)
+    public function load_properties($rawBytes)
     {
-        $r = new Reader($raw_bytes);
+        $r = new Reader($rawBytes);
 
         // Read 16-bit shorts until we get one with a low bit set to zero
         $flags = array();
         while (true) {
-            $flag_bits = $r->readShort();
-            $flags[] = $flag_bits;
-            if(($flag_bits & 1) == 0)
+            $flagBits = $r->readShort();
+            $flags[] = $flagBits;
+            if(($flagBits & 1) == 0)
                 break;
         }
 
@@ -72,10 +87,10 @@ class GenericContent
                 if (!$flags) {
                     break;
                 }
-                $flag_bits = array_shift($flags);
+                $flagBits = array_shift($flags);
                 $shift = 15;
             }
-            if ($flag_bits & (1 << $shift)) {
+            if ($flagBits & (1 << $shift)) {
                 $proptype = ucfirst($proptype);
                 $d[$key] = $r->{'read'.$proptype}();
             }
@@ -83,6 +98,18 @@ class GenericContent
             $shift -= 1;
         }
         $this->properties = $d;
+    }
+
+    /**
+     * @todo add runtime support for message decode
+     * @throws \RuntimeException
+     */
+    public function decode()
+    {
+        $this->body;
+        $this->content_encoding;
+        throw new \RuntimeException('decode is currently unsupproted');
+        return $this->body;
     }
 
 
@@ -94,9 +121,9 @@ class GenericContent
     public function serialize_properties()
     {
         $shift = 15;
-        $flag_bits = 0;
+        $flagBits = 0;
         $flags = array();
-        $raw_bytes = new Writer();
+        $rawBytes = new Writer();
 
         foreach ($this->prop_types as $key => $proptype) {
             if (isset($this->properties[$key])) {
@@ -107,28 +134,28 @@ class GenericContent
 
             if ($val != null) {
                 if ($shift == 0) {
-                    $flags[] = $flag_bits;
-                    $flag_bits = 0;
+                    $flags[] = $flagBits;
+                    $flagBits = 0;
                     $shift = 15;
                 }
 
-                $flag_bits |= (1 << $shift);
+                $flagBits |= (1 << $shift);
                 if ($proptype != "bit") {
                     $proptype = ucfirst($proptype);
-                    $raw_bytes->{'write'.$proptype}($val);
+                    $rawBytes->{'write'.$proptype}($val);
                 }
 
             }
             $shift -= 1;
         }
 
-        $flags[] = $flag_bits;
+        $flags[] = $flagBits;
         $result = new Writer();
-        foreach ($flags as $flag_bits) {
-            $result->writeShort($flag_bits);
+        foreach ($flags as $flagBits) {
+            $result->writeShort($flagBits);
         }
 
-        $result->write($raw_bytes->getvalue());
+        $result->write($rawBytes->getvalue());
 
         return $result->getvalue();
     }

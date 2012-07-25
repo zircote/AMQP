@@ -64,9 +64,9 @@ class Writer
 
         $res = array_reverse($res);
 
-        if ($x != 0) {
-            throw new \Exception('Value too big!');
-        }
+//        if ($x != 0) {
+//            throw new \Exception('Value too big!');
+//        }
 
         return $res;
     }

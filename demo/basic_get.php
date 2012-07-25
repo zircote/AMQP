@@ -1,13 +1,13 @@
 <?php
 
 include(__DIR__ . '/config.php');
-use AMQP\Connection\Connection;
-use AMQP\Message\Message;
+use AMQP\Connection;
+use AMQP\Message;
 
 $exchange = 'basic_get_test';
 $queue = 'basic_get_queue';
 
-$conn = new Connection(HOST, PORT, USER, PASS, VHOST);
+$conn = new Connection(AMQP_RESOURCE);
 $ch = $conn->channel();
 
 /*

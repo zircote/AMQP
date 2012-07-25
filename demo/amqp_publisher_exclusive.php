@@ -1,12 +1,12 @@
 <?php
 
 include(__DIR__ . '/config.php');
-use AMQP\Connection\Connection;
-use AMQP\Message\Message;
+use AMQP\Connection;
+use AMQP\Message;
 
 $exchange = 'fanout_exclusive_example_exchange';
 
-$conn = new Connection(HOST, PORT, USER, PASS, VHOST);
+$conn = new Connection(AMQP_RESOURCE);
 $ch = $conn->channel();
 
 /*
@@ -25,4 +25,3 @@ $ch->basicPublish($msg, $exchange);
 
 $ch->close();
 $conn->close();
-?>

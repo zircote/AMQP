@@ -8,13 +8,13 @@
 
 include(__DIR__ . '/config.php');
 
-use AMQP\Connection\Connection;
-use AMQP\Message\Message;
+use AMQP\Connection;
+use AMQP\Message;
 
 $exchange = 'bench_exchange';
 $queue = 'bench_queue';
 
-$conn = new Connection(HOST, PORT, USER, PASS, VHOST);
+$conn = new Connection(AMQP_RESOURCE);
 $ch = $conn->channel();
 
 $ch->queueDeclare($queue, false, false, false, false);
@@ -22,7 +22,6 @@ $ch->queueDeclare($queue, false, false, false, false);
 $ch->exchangeDeclare($exchange, 'direct', false, false, false);
 
 $ch->queueBind($queue, $exchange);
-
 
 $msg_body = <<<EOT
 abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
@@ -41,7 +40,7 @@ $msg = new Message($msg_body);
 
 $time = microtime(true);
 
-$max = isset($argv[1]) ? (int) $argv[1] : 1;
+$max = isset($argv[ 1 ]) ? (int)$argv[ 1 ] : 1;
 
 // Publishes $max messages using $msg_body as the content.
 for ($i = 0; $i < $max; $i++) {
@@ -54,4 +53,4 @@ $ch->basicPublish(new Message('quit'), $exchange);
 
 $ch->close();
 $conn->close();
-?>
+

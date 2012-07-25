@@ -2,10 +2,15 @@
 
 namespace AMQPTests\Unit\Helper\Writer;
 
-use AMQP\Helper\Protocol\FrameBuilder;
+use AMQP\FrameBuilder;
 
 class FrameBuilderTest extends \PHPUnit_Framework_TestCase
 {
+
+    /**
+     * @var FrameBuilder
+     */
+    protected $frameBuilder;
     public function setUp()
     {
         $this->frameBuilder = new FrameBuilder();
