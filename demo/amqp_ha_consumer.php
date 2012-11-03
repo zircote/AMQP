@@ -5,12 +5,12 @@ use AMQP\Connection;
 
 $exchange = 'router';
 $queue = 'haqueue';
-$specific_queue = 'specific-haqueue';
+$specificQueue = 'specific-haqueue';
 
-$consumer_tag = 'consumer';
+$consumerTag = 'consumer';
 
-$conn = new Connection(AMQP_RESOURCE);
-$ch = $conn->channel();
+$connection = new Connection(AMQP_RESOURCE);
+$channel = $connection->channel();
 
 /*
     The following code is the same both in the consumer and the producer.
@@ -47,9 +47,11 @@ $ha_specific_connection = array(
     nowait: false // Doesn't wait on replies for certain things.
     parameters: array // How you send certain extra data to the queue declare
 */
-$ch->queueDeclare($queue, false, false, false, false, false, $ha_connection);
-$ch->queueDeclare(
-    $specific_queue, false, false, false, false, false, $ha_specific_connection
+$channel->queueDeclare(
+    array('queue' => $queue, 'auto_delete' => false, 'arguments' => $ha_connection)
+);
+$channel->queueDeclare(
+    array('queue' => $specificQueue, 'auto_delete' => false, 'arguments' => $ha_specific_connection)
 );
 
 /*
@@ -60,10 +62,10 @@ $ch->queueDeclare(
     auto_delete: false //the exchange won't be deleted once the channel is closed.
 */
 
-$ch->exchangeDeclare($exchange, 'direct', false, true, false);
+$channel->exchangeDeclare($exchange, 'direct', array('durable' => true, 'auto_delete' => false));
 
-$ch->queueBind($queue, $exchange);
-$ch->queueBind($specific_queue, $exchange);
+$channel->queueBind($queue, $exchange);
+$channel->queueBind($specificQueue, $exchange);
 
 function process_message($msg)
 {
@@ -92,19 +94,19 @@ function process_message($msg)
     callback: A PHP Callback
 */
 
-$ch->basicConsume(
-    $queue, $consumer_tag, false, false, false, false, 'process_message'
+$channel->basicConsume(
+    array( 'queue' => $queue, 'consumer_tag' => $consumerTag, 'callback' => 'process_message')
 );
 
 register_shutdown_function(
-    function() use ($ch, $conn)
+    function() use ($channel, $connection)
     {
-        $ch->close();
-        $conn->close();
+        $channel->close();
+        $connection->close();
     }
 );
 
 // Loop as long as the channel has callbacks registered
-while (count($ch->callbacks)) {
-    $ch->wait();
+while (count($channel->callbacks)) {
+    $channel->wait();
 }

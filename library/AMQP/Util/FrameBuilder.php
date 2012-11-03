@@ -1,9 +1,11 @@
 <?php
-namespace AMQP;
+namespace AMQP\Util;
+
 /**
  *
  */
 use AMQP\Wire\Writer;
+
 /**
  *
  */
@@ -18,13 +20,13 @@ class FrameBuilder
      *
      * @return \AMQP\Wire\Writer
      */
-    public function channelClose($replyCode, $replyText, $classId, $methodId)
+    public function channelClose($options)
     {
         $args = new Writer();
-        $args->writeShort($replyCode)
-            ->writeShortStr($replyText)
-            ->writeShort($classId)
-            ->writeShort($methodId);
+        $args->writeShort($options['reply_code'])
+            ->writeShortStr($options['reply_text'])
+            ->writeShort($options['method_signature'][0])
+            ->writeShort($options['method_signature'][1]);
         return $args;
     }
 
@@ -74,16 +76,15 @@ class FrameBuilder
      *
      * @return \AMQP\Wire\Writer
      */
-    public function accessRequest($realm, $exclusive, $passive, $active, $write,
-                                  $read)
+    public function accessRequest($realm, $options)
     {
         $args = new Writer();
         $args->writeShortStr($realm)
-            ->writeBit($exclusive)
-            ->writeBit($passive)
-            ->writeBit($active)
-            ->writeBit($write)
-            ->writeBit($read);
+            ->writeBit($options['exclusive'])
+            ->writeBit($options['passive'])
+            ->writeBit($options['active'])
+            ->writeBit($options['write'])
+            ->writeBit($options['read']);
         return $args;
     }
 
@@ -100,20 +101,18 @@ class FrameBuilder
      *
      * @return \AMQP\Wire\Writer
      */
-    public function exchangeDeclare($exchange, $type, $passive, $durable,
-                                    $autoDelete, $internal, $nowait, $arguments,
-                                    $ticket)
+    public function exchangeDeclare($exchange, $type, $options = array())
     {
         $args = new Writer();
-        $args->writeShort($ticket)
+        $args->writeShort($options['ticket'])
             ->writeShortStr($exchange)
             ->writeShortStr($type)
-            ->writeBit($passive)
-            ->writeBit($durable)
-            ->writeBit($autoDelete)
-            ->writeBit($internal)
-            ->writeBit($nowait)
-            ->writeTable($arguments);
+            ->writeBit($options['passive'])
+            ->writeBit($options['durable'])
+            ->writeBit($options['auto_delete'])
+            ->writeBit($options['internal'])
+            ->writeBit($options['no_wait'])
+            ->writeTable($options['arguments']);
         return $args;
     }
 
@@ -125,48 +124,46 @@ class FrameBuilder
      *
      * @return \AMQP\Wire\Writer
      */
-    public function exchangeDelete($exchange, $ifUnused, $nowait, $ticket)
+    public function exchangeDelete($exchange, $options)
     {
         $args = new Writer();
-        $args->writeShort($ticket)
+        $args->writeShort($options['ticket'])
             ->writeShortStr($exchange)
-            ->writeBit($ifUnused)
-            ->writeBit($nowait);
+            ->writeBit($options['if_unused'])
+            ->writeBit($options['no_wait']);
         return $args;
     }
 
     /**
      * @param string $queue
      * @param string $exchange
-     * @param string $routingKey
+     * @param string $routing_key
      * @param bool   $nowait
      * @param array  $arguments
      * @param string $ticket
      *
      * @return \AMQP\Wire\Writer
      */
-    public function queueBind($queue, $exchange, $routingKey, $nowait,
-                              $arguments, $ticket)
+    public function queueBind($queue, $exchange, $options)
     {
         $args = new Writer();
-        $args->writeShort($ticket)
+        $args->writeShort($options['ticket'])
             ->writeShortStr($queue)
             ->writeShortStr($exchange)
-            ->writeShortStr($routingKey)
-            ->writeBit($nowait)
-            ->writeTable($arguments);
+            ->writeShortStr($options['routing_key'])
+            ->writeBit($options['no_wait'])
+            ->writeTable($options['arguments']);
         return $args;
     }
 
-    public function queueUnbind($queue, $exchange, $routingKey, $arguments,
-                                $ticket)
+    public function queueUnbind($queue, $exchange, $options)
     {
         $args = new Writer();
-        $args->writeShort($ticket)
+        $args->writeShort($options['ticket'])
             ->writeShortStr($queue)
             ->writeShortStr($exchange)
-            ->writeShortStr($routingKey)
-            ->writeTable($arguments);
+            ->writeShortStr($options['routing_key'])
+            ->writeTable($options['arguments']);
         return $args;
     }
 
@@ -182,18 +179,17 @@ class FrameBuilder
      *
      * @return \AMQP\Wire\Writer
      */
-    public function queueDeclare($queue, $passive, $durable, $exclusive,
-                                 $autoDelete, $nowait, $arguments, $ticket)
+    public function queueDeclare($options)
     {
         $args = new Writer();
-        $args->writeShort($ticket)
-            ->writeShortStr($queue)
-            ->writeBit($passive)
-            ->writeBit($durable)
-            ->writeBit($exclusive)
-            ->writeBit($autoDelete)
-            ->writeBit($nowait)
-            ->writeTable($arguments);
+        $args->writeShort($options['ticket'])
+            ->writeShortStr($options['queue'])
+            ->writeBit($options['passive'])
+            ->writeBit($options['durable'])
+            ->writeBit($options['exclusive'])
+            ->writeBit($options['auto_delete'])
+            ->writeBit($options['no_wait'])
+            ->writeTable($options['arguments']);
         return $args;
     }
 
@@ -206,14 +202,14 @@ class FrameBuilder
      *
      * @return \AMQP\Wire\Writer
      */
-    public function queueDelete($queue, $ifUnused, $ifEmpty, $nowait, $ticket)
+    public function queueDelete($options)
     {
         $args = new Writer();
-        $args->writeShort($ticket)
-            ->writeShortStr($queue)
-            ->writeBit($ifUnused)
-            ->writeBit($ifEmpty)
-            ->writeBit($nowait);
+        $args->writeShort($options['ticket'])
+            ->writeShortStr($options['queue'])
+            ->writeBit($options['if_unused'])
+            ->writeBit($options['if_empty'])
+            ->writeBit($options['no_wait']);
         return $args;
     }
 
@@ -224,12 +220,12 @@ class FrameBuilder
      *
      * @return \AMQP\Wire\Writer
      */
-    public function queuePurge($queue, $nowait, $ticket)
+    public function queuePurge($options)
     {
         $args = new Writer();
-        $args->writeShort($ticket)
-            ->writeShortStr($queue)
-            ->writeBit($nowait);
+        $args->writeShort($options['ticket'])
+            ->writeShortStr($options['queue'])
+            ->writeBit($options['no_wait']);
         return $args;
     }
 
@@ -272,33 +268,32 @@ class FrameBuilder
      *
      * @return \AMQP\Wire\Writer
      */
-    public function basicConsume($queue, $consumerTag, $noLocal,
-                                 $noAck, $exclusive, $nowait, $ticket)
+    public function basicConsume($options)
     {
         $args = new Writer();
-        $args->writeShort($ticket)
-            ->writeShortStr($queue)
-            ->writeShortStr($consumerTag)
-            ->writeBit($noLocal)
-            ->writeBit($noAck)
-            ->writeBit($exclusive)
-            ->writeBit($nowait);
+        $args->writeShort($options['ticket'])
+            ->writeShortStr($options['queue'])
+            ->writeShortStr($options['consumer_tag'])
+            ->writeBit($options['no_local'])
+            ->writeBit($options['no_ack'])
+            ->writeBit($options['exclusive'])
+            ->writeBit($options['no_wait']);
         return $args;
     }
 
     /**
      * @param string $queue
-     * @param bool $noAck
+     * @param bool   $noAck
      * @param string $ticket
      *
      * @return \AMQP\Wire\Writer
      */
-    public function basicGet($queue, $noAck, $ticket)
+    public function basicGet($options)
     {
         $args = new Writer();
-        $args->writeShort($ticket)
-            ->writeShortStr($queue)
-            ->writeBit($noAck);
+        $args->writeShort($options['ticket'])
+            ->writeShortStr($options['queue'])
+            ->writeBit($options['no_ack']);
         return $args;
     }
 
@@ -311,15 +306,14 @@ class FrameBuilder
      *
      * @return \AMQP\Wire\Writer
      */
-    public function basicPublish($exchange, $routingKey, $mandatory,
-                                 $immediate, $ticket)
+    public function basicPublish($options)
     {
         $args = new Writer();
-        $args->writeShort($ticket)
-            ->writeShortStr($exchange)
-            ->writeShortStr($routingKey)
-            ->writeBit($mandatory)
-            ->writeBit($immediate);
+        $args->writeShort($options['ticket'])
+            ->writeShortStr($options['exchange'])
+            ->writeShortStr($options['routingKey'])
+            ->writeBit($options['mandatory'])
+            ->writeBit($options['immediate']);
         return $args;
     }
 
@@ -340,28 +334,28 @@ class FrameBuilder
     }
 
     /**
-     * @param bool $requeue
+     * @param bool $reQueue
      *
      * @return \AMQP\Wire\Writer
      */
-    public function basicRecover($requeue)
+    public function basicRecover($reQueue)
     {
         $args = new Writer();
-        $args->writeBit($requeue);
+        $args->writeBit($reQueue);
         return $args;
     }
 
     /**
      * @param string $deliveryTag
-     * @param bool   $requeue
+     * @param bool   $reQueue
      *
      * @return \AMQP\Wire\Writer
      */
-    public function basicReject($deliveryTag, $requeue)
+    public function basicReject($deliveryTag, $reQueue)
     {
         $args = new Writer();
         $args->writeLongLong($deliveryTag)
-            ->writeBit($requeue);
+            ->writeBit($reQueue);
         return $args;
     }
 }

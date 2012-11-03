@@ -1,12 +1,13 @@
 <?php
 namespace AMQP;
+
 /**
  *
  */
 use AMQP\AbstractChannel;
 use AMQP\Exception\ChannelException;
-use AMQP\Helper;
-use AMQP\FrameBuilder;
+use AMQP\Util\Helper;
+use AMQP\Util\FrameBuilder;
 
 /**
  *
@@ -14,52 +15,53 @@ use AMQP\FrameBuilder;
 class Channel extends AbstractChannel
 {
 
-    protected $_methodMap = array(
-        "20,11" => "_openOk",
-        "20,20" => "flow",
-        "20,21" => "_flowOk",
-        "20,30" => "_alert",
-        "20,40" => "_close",
-        "20,41" => "_close_ok",
-        "30,11" => "_accessRequestOk",
-        "40,11" => "_exchangeDeclareOk",
-        "40,21" => "_exchangeDeleteOk",
-        "50,11" => "_queueDeclareOk",
-        "50,21" => "_queueBindOk",
-        "50,31" => "_queuePurgeOk",
-        "50,41" => "_queueDeleteOk",
-        "50,51" => "_queueUnbindOk",
-        "60,11" => "_basicQosOk",
-        "60,21" => "_basicConsumeOk",
-        "60,31" => "_basicCancelOk",
-        "60,50" => "_basicReturn",
-        "60,60" => "_basicDeliver",
-        "60,71" => "_basicGetOk",
-        "60,72" => "_basicGetEmpty",
-        "90,11" => "_txSelectOk",
-        "90,21" => "_txCommitOk",
-        "90,31" => "_txRollbackOk"
-    );
+    protected $methodMap
+        = array(
+            "20,11" => "openOk",
+            "20,20" => "flow",
+            "20,21" => "flowOk",
+            "20,30" => "alert",
+            "20,40" => "_close",
+            "20,41" => "close_ok",
+            "30,11" => "accessRequestOk",
+            "40,11" => "exchangeDeclareOk",
+            "40,21" => "exchangeDeleteOk",
+            "50,11" => "queueDeclareOk",
+            "50,21" => "queueBindOk",
+            "50,31" => "queuePurgeOk",
+            "50,41" => "queueDeleteOk",
+            "50,51" => "queueUnbindOk",
+            "60,11" => "basicQosOk",
+            "60,21" => "basicConsumeOk",
+            "60,31" => "basicCancelOk",
+            "60,50" => "basicReturn",
+            "60,60" => "basicDeliver",
+            "60,71" => "basicGetOk",
+            "60,72" => "basicGetEmpty",
+            "90,11" => "txSelectOk",
+            "90,21" => "txCommitOk",
+            "90,31" => "txRollbackOk"
+        );
 
     /**
      * @var int
      */
-    protected $_defaultTicket = 0;
+    protected $defaultTicket = 0;
 
     /**
      * @var bool
      */
-    protected $_isOpen = false;
+    protected $isOpen = false;
 
     /**
      * @var bool
      */
-    protected $_active = true;
+    protected $active = true;
 
     /**
      * @var array
      */
-    protected $_alerts = array();
+    protected $alerts = array();
 
     /**
      * @var array
@@ -69,15 +71,19 @@ class Channel extends AbstractChannel
     /**
      * @var bool
      */
-    protected $_autoDecode;
+    protected $autoDecode;
 
     /**
      * @var \AMQP\FrameBuilder
      */
     protected $frameBuilder;
 
-    public function __construct($connection, $channelId = null,
-                                $autoDecode = true)
+    /**
+     * @param Connection $connection
+     * @param null       $channelId
+     * @param bool       $autoDecode
+     */
+    public function __construct($connection, $channelId = null, $autoDecode = true)
     {
 
         $this->frameBuilder = new FrameBuilder();
@@ -88,22 +94,22 @@ class Channel extends AbstractChannel
 
         parent::__construct($connection, $channelId);
 
-        if ($this->_debug) {
+        if ($this->debug) {
             Helper::debugMsg(sprintf('using channel_id: %s', $channelId));
         }
-        $this->_autoDecode = $autoDecode;
+        $this->autoDecode = $autoDecode;
 
-        $this->_xOpen();
+        $this->xOpen();
     }
 
     /**
      * Tear down this object, after we've agreed to close with the server.
      */
-    protected function _doClose()
+    protected function doClose()
     {
-        $this->_isOpen = false;
-        unset($this->_connection->channels[ $this->_channelId ]);
-        $this->_channelId = $this->_connection = null;
+        $this->isOpen = false;
+        unset($this->connection->channels[$this->channelId]);
+        $this->channelId = $this->connection = null;
     }
 
     /**
@@ -116,38 +122,36 @@ class Channel extends AbstractChannel
      *
      * @param \AMQP\Wire\Reader $args
      */
-    protected function _alert(\AMQP\Wire\Reader $args)
+    protected function alert(\AMQP\Wire\Reader $args)
     {
         $replyCode = $args->readShort();
         $replyText = $args->readShortstr();
         $details = $args->readTable();
 
-        array_push($this->_alerts, array( $replyCode, $replyText, $details ));
+        array_push($this->alerts, array($replyCode, $replyText, $details));
     }
 
     /**
-     * request a channel close
-     *
-     * @param int    $replyCode
-     * @param string $replyText
-     * @param array  $methodSig
+     * @param array $options
      *
      * @return mixed|null
+     *
+     * close(array(
+     *      'reply_code' => 0,
+     *      'reply_text' => '',
+     *      'method_signature' => array(0,0))
+     * )
      */
-    public function close($replyCode = 0, $replyText = '',
-                          $methodSig = array( 0, 0 ))
+    public function close($options = array())
     {
-        $args = $this->frameBuilder->channelClose(
-            $replyCode,
-            $replyText,
-            $methodSig[ 0 ],
-            $methodSig[ 1 ]
-        );
+        $default = array('reply_code' => 0, 'reply_text' => '', 'method_signature' => array(0,0));
+        $options = array_merge($default, $options);
+        $args = $this->frameBuilder->channelClose($options);
 
-        $this->_sendMethodFrame(array( 20, 40 ), $args);
+        $this->sendMethodFrame(array(20, 40), $args);
         return $this->wait(
             array(
-                 "20,41" // Channel._close_ok
+                 "20,41" // Channel.close_ok
             )
         );
     }
@@ -164,61 +168,60 @@ class Channel extends AbstractChannel
         $classId = $args->readShort();
         $methodId = $args->readShort();
 
-        $this->_sendMethodFrame(array( 20, 41 ));
-        $this->_doClose();
+        $this->sendMethodFrame(array(20, 41));
+        $this->doClose();
 
-        throw new ChannelException($replyCode, $replyText,
-                                       array( $classId, $methodId ));
+        throw new ChannelException($replyCode, $replyText, array($classId, $methodId));
     }
 
     /**
-     * @param \AMQP\Wire\Reader $args
+     * @param Wire\Reader $args
      */
-    protected function _close_ok(\AMQP\Wire\Reader $args)
+    protected function close_ok(\AMQP\Wire\Reader $args)
     {
-        $this->_doClose();
+        $this->doClose();
     }
 
     /**
-     * @param bool $active
+     * @param $active
      *
      * @return mixed|null
      */
     public function flow($active)
     {
         $args = $this->frameBuilder->flow($active);
-        $this->_sendMethodFrame(array( 20, 20 ), $args);
+        $this->sendMethodFrame(array(20, 20), $args);
         return $this->wait(
             array(
-                 "20,21" //Channel._flowOk
+                 "20,21" //Channel.flowOk
             )
         );
     }
 
     /**
-     * @param \AMQP\Wire\Reader $args
+     * @param Wire\Reader $args
      */
     protected function _flow(\AMQP\Wire\Reader $args)
     {
-        $this->_active = $args->readBit();
-        $this->_xFlowOk($this->_active);
+        $this->active = $args->readBit();
+        $this->xFlowOk($this->active);
     }
 
     /**
      * @param bool $active
      */
-    protected function _xFlowOk($active)
+    protected function xFlowOk($active)
     {
         $args = $this->frameBuilder->flow($active);
-        $this->_sendMethodFrame(array( 20, 21 ), $args);
+        $this->sendMethodFrame(array(20, 21), $args);
     }
 
     /**
-     * @param \AMQP\Wire\Reader $args
+     * @param Wire\Reader $args
      *
      * @return bool
      */
-    protected function _flowOk(\AMQP\Wire\Reader $args)
+    protected function flowOk(\AMQP\Wire\Reader $args)
     {
         return $args->readBit();
     }
@@ -228,55 +231,55 @@ class Channel extends AbstractChannel
      *
      * @return mixed|null
      */
-    protected function _xOpen($outOfBand = '')
+    protected function xOpen($outOfBand = '')
     {
-        if ($this->_isOpen) {
+        if ($this->isOpen) {
             return null;
         }
 
         $args = $this->frameBuilder->xOpen($outOfBand);
-        $this->_sendMethodFrame(array( 20, 10 ), $args);
+        $this->sendMethodFrame(array(20, 10), $args);
         return $this->wait(
             array(
-                 "20,11" //Channel._openOk
+                 "20,11" //Channel.openOk
             )
         );
     }
 
     /**
-     * @param \AMQP\Wire\Reader $args
+     * @param Wire\Reader $args
      */
-    protected function _openOk(\AMQP\Wire\Reader $args)
+    protected function openOk(\AMQP\Wire\Reader $args)
     {
-        $this->_isOpen = true;
-        if ($this->_debug) {
+        $this->isOpen = true;
+        if ($this->debug) {
             Helper::debugMsg('Channel open');
         }
     }
 
     /**
-     * request an access ticket
-     *
-     * @param string $realm
-     * @param bool   $exclusive
-     * @param bool   $passive
-     * @param bool   $active
-     * @param bool   $write
-     * @param bool   $read
+     * @param       $realm
+     * @param array $options
      *
      * @return mixed|null
+     *
+     * accessRequest($realm, array(
+     *      'exclusive' => false,
+     *      'passive' => false,
+     *      'active' => false,
+     *      'write' => false,
+     *      'read' => false)
+     * )
      */
-    public function accessRequest($realm, $exclusive = false,
-                                   $passive = false, $active = false,
-                                   $write = false, $read = false)
+    public function accessRequest($realm, $options = array())
     {
-        $args = $this->frameBuilder->accessRequest(
-            $realm, $exclusive,$passive, $active,$write, $read
-        );
-        $this->_sendMethodFrame(array( 30, 10 ), $args);
+        $default = array('exclusive' => false, 'passive' => false, 'active' => false, 'write' => false, 'read' => false);
+        $options = array_merge($default, $options);
+        $args = $this->frameBuilder->accessRequest($realm, $options);
+        $this->sendMethodFrame(array(30, 10), $args);
         return $this->wait(
             array(
-                 '30,11' //Channel._accessRequestOk
+                 '30,11' //Channel.accessRequestOk
             )
         );
     }
@@ -288,52 +291,44 @@ class Channel extends AbstractChannel
      *
      * @return int
      */
-    protected function _accessRequestOk(\AMQP\Wire\Reader $args)
+    protected function accessRequestOk(\AMQP\Wire\Reader $args)
     {
-        $this->_defaultTicket = $args->readShort();
-        return $this->_defaultTicket;
+        $this->defaultTicket = $args->readShort();
+        return $this->defaultTicket;
     }
 
     /**
-     * declare exchange, create if needed
-     *
-     * @param      $exchange
-     * @param      $type
-     * @param bool $passive
-     * @param bool $durable
-     * @param bool $auto_delete
-     * @param bool $internal
-     * @param bool $nowait
-     * @param null $arguments
-     * @param null $ticket
+     * @param       $exchange
+     * @param       $type
+     * @param array $options
      *
      * @return mixed|null
+     *
+     * exchangeDeclare($exchange, $type,
+     *  array(
+     *      'passive'  => false,
+     *      'durable' => false,
+     *      'auto_delete' => true,
+     *      'internal' => false,
+     *      'no_wait' => false,
+     *      'arguments' => array(),
+     *      'ticket' => null)
+     * )
      */
-    public function exchangeDeclare($exchange,
-                                     $type,
-                                     $passive = false,
-                                     $durable = false,
-                                     $auto_delete = true,
-                                     $internal = false,
-                                     $nowait = false,
-                                     $arguments = null,
-                                     $ticket = null)
+    public function exchangeDeclare($exchange, $type, $options = array())
     {
+        $defaultArgs = array('passive'  => false, 'durable' => false, 'auto_delete' => true,
+                             'internal' => false, 'no_wait' => false, 'arguments' => array(), 'ticket' => null);
+        $options = array_merge($defaultArgs, $options);
+        $options['arguments'] = $this->getArguments($options['arguments']);
+        $options['ticket'] = $this->getTicket($options['ticket']);
+        $args = $this->frameBuilder->exchangeDeclare($exchange, $type, $options);
+        $this->sendMethodFrame(array(40, 10), $args);
 
-        $arguments = $this->_getArguments($arguments);
-        $ticket = $this->_getTicket($ticket);
-
-        $args = $this->frameBuilder->exchangeDeclare(
-            $exchange, $type, $passive, $durable, $auto_delete,
-            $internal, $nowait,$arguments, $ticket
-        );
-
-        $this->_sendMethodFrame(array( 40, 10 ), $args);
-
-        if (!$nowait) {
+        if (!$options['no_wait']) {
             return $this->wait(
                 array(
-                     "40,11" //Channel._exchangeDeclareOk
+                     "40,11" //Channel.exchangeDeclareOk
                 )
             );
         }
@@ -345,33 +340,35 @@ class Channel extends AbstractChannel
      *
      * @param \AMQP\Wire\Reader $args
      */
-    protected function _exchangeDeclareOk(\AMQP\Wire\Reader $args)
+    protected function exchangeDeclareOk(\AMQP\Wire\Reader $args)
     {
     }
 
     /**
-     * delete an exchange
-     *
-     * @param      $exchange
-     * @param bool $if_unused
-     * @param bool $nowait
-     * @param null $ticket
+     * @param       $exchange
+     * @param array $options
      *
      * @return mixed|null
+     *
+     *
+     * exchangeDelete($exchange, array(
+     *      'if_unused' => false,
+     *      'no_wait' => false,
+     *      'ticket' => null)
+     * );
      */
-    public function exchangeDelete($exchange, $if_unused = false,
-                                    $nowait = false, $ticket = null)
+    public function exchangeDelete($exchange, $options=array())
     {
-        $ticket = $this->_getTicket($ticket);
-        $args = $this->frameBuilder->exchangeDelete(
-            $exchange, $if_unused, $nowait, $ticket
-        );
-        $this->_sendMethodFrame(array( 40, 20 ), $args);
+        $default = array('if_unused' => false, 'no_wait' => false, 'ticket' => null);
+        $options = array_merge($default, $options);
+        $options['ticket'] = $this->getTicket($options['ticket']);
+        $args = $this->frameBuilder->exchangeDelete($exchange, $options);
+        $this->sendMethodFrame(array(40, 20), $args);
 
-        if (!$nowait) {
+        if (!$options['no_wait']) {
             return $this->wait(
                 array(
-                     "40,21" //Channel._exchangeDeleteOk
+                     "40,21" //Channel.exchangeDeleteOk
                 )
             );
         }
@@ -381,41 +378,44 @@ class Channel extends AbstractChannel
     /**
      * confirm deletion of an exchange
      *
-     * @param \AMQP\Wire\Reader $args
+     * @param Wire\Reader $args
      */
-    protected function _exchangeDeleteOk(\AMQP\Wire\Reader $args)
+    protected function exchangeDeleteOk(\AMQP\Wire\Reader $args)
     {
     }
 
     /**
-     * bind queue to an exchange
-     *
-     * @param        $queue
-     * @param        $exchange
-     * @param string $routing_key
-     * @param bool   $nowait
-     * @param null   $arguments
-     * @param null   $ticket
+     * @param       $queue
+     * @param       $exchange
+     * @param array $options
      *
      * @return mixed|null
+     *
+     *
+     * queueBind($queue, $exchange,
+     *      array(
+     *          'routing_key' => '',
+     *          'no_wait' => false,
+     *          'arguments' => array(),
+     *          'ticket' => null
+     *      )
+     * )
      */
-    public function queueBind($queue, $exchange, $routing_key = '',
-                               $nowait = false, $arguments = null,
-                               $ticket = null)
+    public function queueBind($queue, $exchange, $options=array())
     {
-        $arguments = $this->_getArguments($arguments);
-        $ticket = $this->_getTicket($ticket);
+        $default = array('routing_key' => '', 'no_wait' => false, 'arguments' => array(), 'ticket' => null);
+        $options = array_merge($default, $options);
+        $options['arguments'] = $this->getArguments($options['arguments']);
+        $options['ticket'] = $this->getTicket($options['ticket']);
 
-        $args = $this->frameBuilder->queueBind(
-            $queue, $exchange, $routing_key, $nowait, $arguments, $ticket
-        );
+        $args = $this->frameBuilder->queueBind($queue, $exchange, $options);
 
-        $this->_sendMethodFrame(array( 50, 20 ), $args);
+        $this->sendMethodFrame(array(50, 20), $args);
 
-        if (!$nowait) {
+        if (!$options['no_wait']) {
             return $this->wait(
                 array(
-                     "50,21" // Channel._queueBindOk
+                     "50,21" // Channel.queueBindOk
                 )
             );
         }
@@ -427,7 +427,7 @@ class Channel extends AbstractChannel
      *
      * @param \AMQP\Wire\Reader $args
      */
-    protected function _queueBindOk(\AMQP\Wire\Reader $args)
+    protected function queueBindOk(\AMQP\Wire\Reader $args)
     {
     }
 
@@ -436,27 +436,25 @@ class Channel extends AbstractChannel
      *
      * @param        $queue
      * @param        $exchange
-     * @param string $routing_key
-     * @param null   $arguments
-     * @param null   $ticket
-     *
+     * @param array  $options
      * @return mixed|null
+     *
+     * queueUnbind($queue, $exchange, array('routing_key' => '', 'arguments' => null, 'ticket' => null));
      */
-    public function queueUnbind($queue, $exchange, $routing_key = '',
-                                 $arguments = null, $ticket = null)
+    public function queueUnbind($queue, $exchange, $options = array())
     {
-        $arguments = $this->_getArguments($arguments);
-        $ticket = $this->_getTicket($ticket);
+        $default = array('routing_key' => '', 'arguments' => null, 'ticket' => null);
+        $options = array_merge($default, $options);
+        $options['arguments'] = $this->getArguments($options['arguments']);
+        $options['ticket'] = $this->getTicket($options['ticket']);
 
-        $args = $this->frameBuilder->queueUnbind(
-            $queue, $exchange, $routing_key, $arguments, $ticket
-        );
+        $args = $this->frameBuilder->queueUnbind($queue, $exchange, $options);
 
-        $this->_sendMethodFrame(array( 50, 50 ), $args);
+        $this->sendMethodFrame(array(50, 50), $args);
 
         return $this->wait(
             array(
-                 "50,51" // Channel._queueUnbindOk
+                 "50,51" // Channel.queueUnbindOk
             )
         );
     }
@@ -466,47 +464,40 @@ class Channel extends AbstractChannel
      *
      * @param \AMQP\Wire\Reader $args
      */
-    protected function _queueUnbindOk(\AMQP\Wire\Reader $args)
+    protected function queueUnbindOk(\AMQP\Wire\Reader $args)
     {
     }
 
     /**
-     * declare queue, create if needed
-     *
-     * @param string $queue
-     * @param bool   $passive
-     * @param bool   $durable
-     * @param bool   $exclusive
-     * @param bool   $auto_delete
-     * @param bool   $nowait
-     * @param null   $arguments
-     * @param null   $ticket
+     * @param array $options
      *
      * @return mixed|null
+     *
+     * queueDeclare(array(
+     *      'queue' => '',
+     *      'passive' => false,
+     *      'durable' => false,
+     *      'exclusive' => false,
+     *      'auto_delete' => true,
+     *      'no_wait' => false,
+     *      'arguments' => array(),
+     *      'ticket' => null
+     * ));
      */
-    public function  queueDeclare($queue = '',
-                                   $passive = false,
-                                   $durable = false,
-                                   $exclusive = false,
-                                   $auto_delete = true,
-                                   $nowait = false,
-                                   $arguments = null,
-                                   $ticket = null)
+    public function queueDeclare($options = array())
     {
-        $arguments = $this->_getArguments($arguments);
-        $ticket = $this->_getTicket($ticket);
+        $default = array('queue' => '', 'passive' => false, 'durable' => false, 'exclusive' => false,
+        'auto_delete' => true, 'no_wait' => false, 'arguments' => array(), 'ticket' => null);
+        $options = array_merge($default, $options);
+        $options['arguments'] = $this->getArguments($options['arguments']);
+        $options['ticket'] = $this->getTicket($options['ticket']);
+        $args = $this->frameBuilder->queueDeclare($options);
+        $this->sendMethodFrame(array(50, 10), $args);
 
-        $args = $this->frameBuilder->queueDeclare(
-            $queue, $passive, $durable,
-            $exclusive, $auto_delete, $nowait,
-            $arguments, $ticket
-        );
-        $this->_sendMethodFrame(array( 50, 10 ), $args);
-
-        if (!$nowait) {
+        if (!$options['no_wait']) {
             return $this->wait(
                 array(
-                     "50,11" // Channel._queueDeclareOk
+                     "50,11" // Channel.queueDeclareOk
                 )
             );
         }
@@ -520,42 +511,42 @@ class Channel extends AbstractChannel
      *
      * @return array
      */
-    protected function _queueDeclareOk(\AMQP\Wire\Reader $args)
+    protected function queueDeclareOk(\AMQP\Wire\Reader $args)
     {
         $queue = $args->readShortstr();
         $messageCount = $args->readLong();
         $consumerCount = $args->readLong();
 
-        return array( $queue, $messageCount, $consumerCount );
+        return array($queue, $messageCount, $consumerCount);
     }
 
     /**
-     * delete a queue
-     *
-     * @param string $queue
-     * @param bool   $if_unused
-     * @param bool   $if_empty
-     * @param bool   $nowait
-     * @param null   $ticket
+     * @param array $options
      *
      * @return mixed|null
+     *
+     * queueDelete(array(
+     *      'queue' => '',
+     *      'if_unused' => false,
+     *      'if_empty' => false,
+     *      'no_wait' => false,
+     *      'ticket' => null)
+     * )
      */
-    public function queueDelete($queue = '', $if_unused = false,
-                                 $if_empty = false,
-                                 $nowait = false, $ticket = null)
+    public function queueDelete($options = array())
     {
-        $ticket = $this->_getTicket($ticket);
+        $default = array('queue' => '', 'if_unused' => false, 'if_empty' => false, 'no_wait' => false, 'ticket' => null);
+        $options = array_merge($default, $options);
+        $options['ticket'] = $this->getTicket($options['ticket']);
 
-        $args = $this->frameBuilder->queueDelete(
-            $queue, $if_unused, $if_empty, $nowait, $ticket
-        );
+        $args = $this->frameBuilder->queueDelete($options);
 
-        $this->_sendMethodFrame(array( 50, 40 ), $args);
+        $this->sendMethodFrame(array(50, 40), $args);
 
-        if (!$nowait) {
+        if (!$options['no_wait']) {
             return $this->wait(
                 array(
-                     "50,41" //Channel._queueDeleteOk
+                     "50,41" //Channel.queueDeleteOk
                 )
             );
         }
@@ -569,31 +560,35 @@ class Channel extends AbstractChannel
      *
      * @return string
      */
-    protected function _queueDeleteOk(\AMQP\Wire\Reader $args)
+    protected function queueDeleteOk(\AMQP\Wire\Reader $args)
     {
         return $args->readLong();
     }
 
     /**
-     * purge a queue
-     *
-     * @param string $queue
-     * @param bool   $nowait
-     * @param null   $ticket
+     * @param array $options
      *
      * @return mixed|null
+     *
+     * queuePurge(array(
+     *      'queue' => '',
+     *      'no_wait' => false,
+     *      'ticket' => null)
+     * )
      */
-    public function queuePurge($queue = '', $nowait = false, $ticket = null)
+    public function queuePurge($options = array())
     {
-        $ticket = $this->_getTicket($ticket);
-        $args = $this->frameBuilder->queuePurge($queue, $nowait, $ticket);
+        $default = array('queue' => '', 'no_wait' => false, 'ticket' => null);
+        $options = array_merge($default, $options);
+        $options['ticket'] = $this->getTicket($options['ticket']);
+        $args = $this->frameBuilder->queuePurge($options);
 
-        $this->_sendMethodFrame(array( 50, 30 ), $args);
+        $this->sendMethodFrame(array(50, 30), $args);
 
-        if (!$nowait) {
+        if (!$options['no_wait']) {
             return $this->wait(
                 array(
-                     "50,31" //Channel._queuePurgeOk
+                     "50,31" //Channel.queuePurgeOk
                 )
             );
         }
@@ -607,21 +602,19 @@ class Channel extends AbstractChannel
      *
      * @return string
      */
-    protected function _queuePurgeOk(\AMQP\Wire\Reader $args)
+    protected function queuePurgeOk(\AMQP\Wire\Reader $args)
     {
         return $args->readLong();
     }
 
     /**
-     * acknowledge one or more messages
-     *
      * @param      $delivery_tag
      * @param bool $multiple
      */
     public function basicAck($delivery_tag, $multiple = false)
     {
         $args = $this->frameBuilder->basicAck($delivery_tag, $multiple);
-        $this->_sendMethodFrame(array( 60, 80 ), $args);
+        $this->sendMethodFrame(array(60, 80), $args);
     }
 
     /**
@@ -635,62 +628,61 @@ class Channel extends AbstractChannel
     public function basicCancel($consumerTag, $nowait = false)
     {
         $args = $this->frameBuilder->basicCancel($consumerTag, $nowait);
-        $this->_sendMethodFrame(array( 60, 30 ), $args);
+        $this->sendMethodFrame(array(60, 30), $args);
         return $this->wait(
             array(
-                 "60,31" // Channel._basicCancelOk
+                 "60,31" // Channel.basicCancelOk
             )
         );
     }
 
     /**
-     * confirm a cancelled consumer
-     *
-     * @param \AMQP\Wire\Reader $args
+     * @param Wire\Reader $args
      */
-    protected function _basicCancelOk(\AMQP\Wire\Reader $args)
+    protected function basicCancelOk(\AMQP\Wire\Reader $args)
     {
         $consumer_tag = $args->readShortstr();
-        unset($this->callbacks[ $consumer_tag ]);
+        unset($this->callbacks[$consumer_tag]);
     }
 
     /**
-     * _start a queue consumer
+     * @param array $options
      *
-     * @param string $queue
-     * @param string $consumerTag
-     * @param bool   $noLocal
-     * @param bool   $noAck
-     * @param bool   $exclusive
-     * @param bool   $nowait
-     * @param null   $callback
-     * @param null   $ticket
+     * @return mixed|null
      *
-     * @return mixed|null|string
+     * basicConsume(
+     *  array(
+     *      'queue' => '',
+     *      'consumer_tag' => '',
+     *      'no_local' => false,
+     *      'no_ack' => false,
+     *      'exclusive' => false,
+     *      'no_wait' => false,
+     *      'callback' => null,
+     *      'ticket' => null
+     *  )
+     * )
      */
-    public function basicConsume($queue = '', $consumerTag = '',
-                                  $noLocal = false,
-                                  $noAck = false, $exclusive = false,
-                                  $nowait = false,
-                                  $callback = null, $ticket = null)
+    public function basicConsume($options = array())
     {
-        $ticket = $this->_getTicket($ticket);
-        $args = $this->frameBuilder->basicConsume(
-            $queue, $consumerTag, $noLocal,
-            $noAck, $exclusive, $nowait, $ticket
-        );
+        $consumerTag = null;
+        $default = array('queue' => '', 'consumer_tag' => '', 'no_local' => false, 'no_ack' => false, 'exclusive' => false,
+                         'no_wait' => false, 'callback' => null, 'ticket' => null);
+        $options = array_merge($default, $options);
+        $options['ticket'] = $this->getTicket($options['ticket']);
+        $args = $this->frameBuilder->basicConsume($options);
 
-        $this->_sendMethodFrame(array( 60, 20 ), $args);
+        $this->sendMethodFrame(array(60, 20), $args);
 
-        if (!$nowait) {
+        if (!$options['no_wait']) {
             $consumerTag = $this->wait(
                 array(
-                     "60,21" //Channel._basicConsumeOk
+                     "60,21" //Channel.basicConsumeOk
                 )
             );
         }
 
-        $this->callbacks[ $consumerTag ] = $callback;
+        $this->callbacks[$consumerTag] = $options['callback'];
         return $consumerTag;
     }
 
@@ -701,21 +693,16 @@ class Channel extends AbstractChannel
      *
      * @return string
      */
-    protected function _basicConsumeOk(\AMQP\Wire\Reader $args)
+    protected function basicConsumeOk(\AMQP\Wire\Reader $args)
     {
         return $args->readShortstr();
     }
 
     /**
-     * notify the client of a consumer message
-     *
-     * @param \AMQP\Wire\Reader     $args
-     * @param \AMQP\Message $msg
+     * @param Wire\Reader $args
+     * @param Message     $msg
      */
-    protected function _basicDeliver(
-        \AMQP\Wire\Reader $args,
-        \AMQP\Message $msg
-    )
+    protected function basicDeliver(\AMQP\Wire\Reader $args, \AMQP\Message $msg)
     {
         $consumerTag = $args->readShortstr();
         $deliveryTag = $args->readLonglong();
@@ -724,44 +711,48 @@ class Channel extends AbstractChannel
         $routingKey = $args->readShortstr();
 
         $msg->delivery_info = array(
-            "channel" => $this,
+            "channel"      => $this,
             "consumer_tag" => $consumerTag,
             "delivery_tag" => $deliveryTag,
-            "redelivered" => $redelivered,
-            "exchange" => $exchange,
-            "routing_key" => $routingKey
+            "redelivered"  => $redelivered,
+            "exchange"     => $exchange,
+            "routing_key"  => $routingKey
         );
-
-        if (isset($this->callbacks[ $consumerTag ])) {
-            $func = $this->callbacks[ $consumerTag ];
-        } else {
-            $func = null;
+        $callback = null;
+        if (isset($this->callbacks[$consumerTag])) {
+            $callback = $this->callbacks[$consumerTag];
         }
 
-        if ($func != null) {
-            call_user_func($func, $msg);
+        if ($callback != null && is_callable($callback)) {
+            call_user_func($callback, $msg);
         }
     }
 
     /**
-     * direct access to a queue
-     *
-     * @param string $queue
-     * @param bool   $noAck
-     * @param null   $ticket
+     * @param array $options
      *
      * @return mixed|null
+     *
+     * basicGet(
+     *  array(
+     *      'queue' => '',
+     *      'no_ack' => false,
+     *      'ticket' => null
+     *  )
+     * )
      */
-    public function basicGet($queue = '', $noAck = false, $ticket = null)
+    public function basicGet($options = array())
     {
-        $ticket = $this->_getTicket($ticket);
-        $args = $this->frameBuilder->basicGet($queue, $noAck, $ticket);
+        $default = array('queue' => '', 'no_ack' => false, 'ticket' => null);
+        $options = array_merge($default, $options);
+        $options['ticket'] = $this->getTicket($options['ticket']);
+        $args = $this->frameBuilder->basicGet($options);
 
-        $this->_sendMethodFrame(array( 60, 70 ), $args);
+        $this->sendMethodFrame(array(60, 70), $args);
         return $this->wait(
             array(
-                 "60,71", //Channel._basicGetOk
-                 "60,72" // Channel._basicGetEmpty
+                 "60,71", //Channel.basicGetOk
+                 "60,72" // Channel.basicGetEmpty
             )
         );
     }
@@ -771,20 +762,18 @@ class Channel extends AbstractChannel
      *
      * @param \AMQP\Wire\Reader $args
      */
-    protected function _basicGetEmpty(\AMQP\Wire\Reader $args)
+    protected function basicGetEmpty(\AMQP\Wire\Reader $args)
     {
         $cluster_id = $args->readShortstr();
     }
 
     /**
-     * provide client with a message
+     * @param Wire\Reader $args
+     * @param Message     $msg
      *
-     * @param \AMQP\Wire\Reader     $args
-     * @param \AMQP\Message $msg
-     *
-     * @return \AMQP\Message
+     * @return Message
      */
-    protected function _basicGetOk(\AMQP\Wire\Reader $args, \AMQP\Message $msg)
+    protected function basicGetOk(\AMQP\Wire\Reader $args, \AMQP\Message $msg)
     {
         $deliveryTag = $args->readLonglong();
         $redelivered = $args->readBit();
@@ -793,41 +782,42 @@ class Channel extends AbstractChannel
         $messageCount = $args->readLong();
 
         $msg->delivery_info = array(
-            "delivery_tag" => $deliveryTag,
-            "redelivered" => $redelivered,
-            "exchange" => $exchange,
-            "routing_key" => $routingKey,
+            "delivery_tag"  => $deliveryTag,
+            "redelivered"   => $redelivered,
+            "exchange"      => $exchange,
+            "routing_key"   => $routingKey,
             "message_count" => $messageCount
         );
         return $msg;
     }
 
     /**
-     * publish a message
+     * @param Message $msg
+     * @param array   $options
      *
-     * @param \AMQP\Message $msg
-     * @param string                    $exchange
-     * @param string                    $routingKey
-     * @param bool                      $mandatory
-     * @param bool                      $immediate
-     * @param null                      $ticket
+     * basicPublish($msg,
+     *  array(
+     *      'exchange' => '',
+     *      'routingKey' => '',
+     *      'mandatory' => false,
+     *      'immediate' => false,
+     *      'ticket' => null)
+     * )
      */
-    public function basicPublish(\AMQP\Message $msg, $exchange = '', $routingKey = '',
-                                  $mandatory = false, $immediate = false,
-                                  $ticket = null)
+    public function basicPublish( \AMQP\Message $msg, $options = array())
     {
-        $ticket = $this->_getTicket($ticket);
-        $args = $this->frameBuilder->basicPublish(
-            $exchange, $routingKey, $mandatory,
-            $immediate, $ticket
-        );
+        $default = array('exchange' => '', 'routingKey' => '', 'mandatory' => false, 'immediate' => false,
+                         'ticket' => null);
+        $options = array_merge($default, $options);
+        $options['ticket'] = $this->getTicket($options['ticket']);
+        $args = $this->frameBuilder->basicPublish($options);
 
-        $this->_sendMethodFrame(array( 60, 40 ), $args);
+        $this->sendMethodFrame(array(60, 40), $args);
 
-        $this->_connection->sendContent(
-            $this->_channelId, 60, 0,
+        $this->connection->sendContent(
+            $this->channelId, 60, 0,
             strlen($msg->body),
-            $msg->serialize_properties(),
+            $msg->serializeProperties(),
             $msg->body
         );
     }
@@ -846,10 +836,10 @@ class Channel extends AbstractChannel
         $args = $this->frameBuilder->basicQos(
             $prefetchSize, $prefetchCount, $aGlobal
         );
-        $this->_sendMethodFrame(array( 60, 10 ), $args);
+        $this->sendMethodFrame(array(60, 10), $args);
         return $this->wait(
             array(
-                 "60,11" //Channel._basicQosOk
+                 "60,11" //Channel.basicQosOk
             )
         );
     }
@@ -859,31 +849,31 @@ class Channel extends AbstractChannel
      *
      * @param \AMQP\Wire\Reader $args
      */
-    protected function _basicQosOk(\AMQP\Wire\Reader $args)
+    protected function basicQosOk(\AMQP\Wire\Reader $args)
     {
     }
 
     /**
      * redeliver unacknowledged messages
      *
-     * @param bool $requeue
+     * @param bool $reQueue
      */
-    public function basicRecover($requeue = false)
+    public function basicRecover($reQueue = false)
     {
-        $args = $this->frameBuilder->basicRecover($requeue);
-        $this->_sendMethodFrame(array( 60, 100 ), $args);
+        $args = $this->frameBuilder->basicRecover($reQueue);
+        $this->sendMethodFrame(array(60, 100), $args);
     }
 
     /**
      * reject an incoming message
      *
      * @param $deliveryTag
-     * @param $requeue
+     * @param $reQueue
      */
-    public function basicReject($deliveryTag, $requeue)
+    public function basicReject($deliveryTag, $reQueue)
     {
-        $args = $this->frameBuilder->basicReject($deliveryTag, $requeue);
-        $this->_sendMethodFrame(array( 60, 90 ), $args);
+        $args = $this->frameBuilder->basicReject($deliveryTag, $reQueue);
+        $this->sendMethodFrame(array(60, 90), $args);
     }
 
     /**
@@ -891,7 +881,7 @@ class Channel extends AbstractChannel
      *
      * @param \AMQP\Wire\Reader $args
      */
-    protected function _basicReturn(\AMQP\Wire\Reader $args)
+    protected function basicReturn(\AMQP\Wire\Reader $args)
     {
         $reply_code = $args->readShort();
         $reply_text = $args->readShortstr();
@@ -905,10 +895,10 @@ class Channel extends AbstractChannel
      */
     public function txCommit()
     {
-        $this->_sendMethodFrame(array( 90, 20 ));
+        $this->sendMethodFrame(array(90, 20));
         return $this->wait(
             array(
-                 "90,21" //Channel._txCommitOk
+                 "90,21" //Channel.txCommitOk
             )
         );
     }
@@ -918,7 +908,7 @@ class Channel extends AbstractChannel
      *
      * @param \AMQP\Wire\Reader $args
      */
-    protected function _txCommitOk(\AMQP\Wire\Reader $args)
+    protected function txCommitOk(\AMQP\Wire\Reader $args)
     {
     }
 
@@ -929,10 +919,10 @@ class Channel extends AbstractChannel
      */
     public function txRollback()
     {
-        $this->_sendMethodFrame(array( 90, 30 ));
+        $this->sendMethodFrame(array(90, 30));
         return $this->wait(
             array(
-                 "90,31" //Channel._txRollbackOk
+                 "90,31" //Channel.txRollbackOk
             )
         );
     }
@@ -942,7 +932,7 @@ class Channel extends AbstractChannel
      *
      * @param \AMQP\Wire\Reader $args
      */
-    protected function _txRollbackOk(\AMQP\Wire\Reader $args)
+    protected function txRollbackOk(\AMQP\Wire\Reader $args)
     {
     }
 
@@ -953,10 +943,10 @@ class Channel extends AbstractChannel
      */
     public function txSelect()
     {
-        $this->_sendMethodFrame(array( 90, 10 ));
+        $this->sendMethodFrame(array(90, 10));
         return $this->wait(
             array(
-                 "90,11" //Channel._txSelectOk
+                 "90,11" //Channel.txSelectOk
             )
         );
     }
@@ -966,7 +956,7 @@ class Channel extends AbstractChannel
      *
      * @param \AMQP\Wire\Reader $args
      */
-    protected function _txSelectOk(\AMQP\Wire\Reader $args)
+    protected function txSelectOk(\AMQP\Wire\Reader $args)
     {
     }
 
@@ -975,7 +965,7 @@ class Channel extends AbstractChannel
      *
      * @return array
      */
-    protected function _getArguments($arguments)
+    protected function getArguments($arguments)
     {
         return (null === $arguments) ? array() : $arguments;
     }
@@ -985,8 +975,8 @@ class Channel extends AbstractChannel
      *
      * @return int
      */
-    protected function _getTicket($ticket)
+    protected function getTicket($ticket)
     {
-        return (null === $ticket) ? $this->_defaultTicket : $ticket;
+        return (null === $ticket) ? $this->defaultTicket : $ticket;
     }
 }

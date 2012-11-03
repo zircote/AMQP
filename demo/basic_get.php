@@ -23,7 +23,7 @@ $ch = $conn->channel();
     exclusive: false // the queue can be accessed in other channels
     auto_delete: false //the queue won't be deleted once the channel is closed.
 */
-$ch->queueDeclare($queue, false, true, false, false);
+$ch->queueDeclare(array('queue' => $queue, 'durable' => true, 'auto_delete' => false));
 
 /*
     name: $exchange
@@ -33,14 +33,14 @@ $ch->queueDeclare($queue, false, true, false, false);
     auto_delete: false //the exchange won't be deleted once the channel is closed.
 */
 
-$ch->exchangeDeclare($exchange, 'direct', false, true, false);
+$ch->exchangeDeclare($exchange, 'direct', array('durable' => true, 'auto_delete' => false));
 
 $ch->queueBind($queue, $exchange);
 
 $toSend = new Message('test message', array('content_type' => 'text/plain', 'delivery_mode' => 2));
-$ch->basicPublish($toSend, $exchange);
+$ch->basicPublish($toSend, array('exchange' => $exchange));
 
-$msg = $ch->basicGet($queue);
+$msg = $ch->basicGet(array('queue' => $queue));
 
 $ch->basicAck($msg->delivery_info['delivery_tag']);
 

@@ -5,7 +5,7 @@
 When creating a new message set the `delivery_mode` to __2__:
 
     $msg = new Message(
-        $msg_body,
+        $msgBody,
         array(
             'delivery_mode' = 2
         )

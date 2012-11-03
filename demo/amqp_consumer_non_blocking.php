@@ -5,10 +5,10 @@ use AMQP\Connection;
 
 $exchange = 'router';
 $queue = 'msgs';
-$consumer_tag = 'consumer';
+$consumerTag = 'consumer';
 
-$conn = new Connection(AMQP_RESOURCE);
-$ch = $conn->channel();
+$connection = new Connection(AMQP_RESOURCE);
+$channel = $connection->channel();
 
 /*
     The following code is the same both in the consumer and the producer.
@@ -23,7 +23,7 @@ $ch = $conn->channel();
     exclusive: false // the queue can be accessed in other channels
     auto_delete: false //the queue won't be deleted once the channel is closed.
 */
-$ch->queueDeclare($queue, false, true, false, false);
+$channel->queueDeclare(array('queue' => $queue, 'durable' => true, 'auto_delete' => false));
 
 /*
     name: $exchange
@@ -33,9 +33,9 @@ $ch->queueDeclare($queue, false, true, false, false);
     auto_delete: false //the exchange won't be deleted once the channel is closed.
 */
 
-$ch->exchangeDeclare($exchange, 'direct', false, true, false);
+$channel->exchangeDeclare($exchange, 'direct', array('durable' => true, 'auto_delete' => false));
 
-$ch->queueBind($queue, $exchange);
+$channel->queueBind($queue, $exchange);
 
 function process_message($msg)
 {
@@ -64,22 +64,20 @@ function process_message($msg)
     callback: A PHP Callback
 */
 
-$ch->basicConsume(
-    $queue, $consumer_tag, false, false, false, false, 'process_message'
-);
+$channel->basicConsume(array('queue' => $queue, 'consumer_tag' => $consumerTag, 'callback' => 'process_message'));
 
 register_shutdown_function(
-    function() use ($ch, $conn)
+    function() use ($channel, $connection)
     {
-        $ch->close();
-        $conn->close();
+        $channel->close();
+        $connection->close();
     }
 );
 
 // Loop as long as the channel has callbacks registered
-while (count($ch->callbacks)) {
+while (count($channel->callbacks)) {
     $read = array(
-        $conn->getSocket()
+        $connection->getSocket()
     ); // add here other sockets that you need to attend
     $write = null;
     $except = null;
@@ -88,7 +86,7 @@ while (count($ch->callbacks)) {
     ) {
         /* Error handling */
     } elseif ($num_changed_streams > 0) {
-        $ch->wait();
+        $channel->wait();
     }
 }
 

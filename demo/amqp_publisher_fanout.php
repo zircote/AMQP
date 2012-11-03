@@ -6,8 +6,8 @@ use AMQP\Message;
 
 $exchange = 'fanout_example_exchange';
 
-$conn = new Connection(AMQP_RESOURCE);
-$ch = $conn->channel();
+$connection = new Connection(AMQP_RESOURCE);
+$channel = $connection->channel();
 
 /*
     name: $exchange
@@ -17,11 +17,11 @@ $ch = $conn->channel();
     auto_delete: true //the exchange will be deleted once the channel is closed.
 */
 
-$ch->exchangeDeclare($exchange, 'fanout', false, false, true);
+$channel->exchangeDeclare($exchange, 'fanout');
 
-$msg_body = implode(' ', array_slice($argv, 1));
-$msg = new Message($msg_body,array('content_type' => 'text/plain'));
-$ch->basicPublish($msg, $exchange);
+$messageBody = implode(' ', array_slice($argv, 1));
+$message = new Message($messageBody,array('content_type' => 'text/plain'));
+$channel->basicPublish($message, array('exchange' => $exchange));
 
-$ch->close();
-$conn->close();
+$channel->close();
+$connection->close();

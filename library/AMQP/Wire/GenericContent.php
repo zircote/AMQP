@@ -1,7 +1,9 @@
 <?php
-
 namespace AMQP\Wire;
 
+/**
+ *
+ */
 use AMQP\Wire\Reader;
 use AMQP\Wire\Writer;
 
@@ -22,25 +24,39 @@ class GenericContent
      * @var string
      */
     public $body;
+    /**
+     * @var array|null
+     */
+    protected $propertyTypes = array();
+    /**
+     * @var string
+     */
+    protected $content_encoding;
 
     /**
      * @var array
      */
-    protected static $_properties = array(
-        "dummy" => "shortstr"
-    );
+    protected static $propertyTable
+        = array(
+            "dummy" => "shortstr"
+        );
+    /**
+     * @var array
+     */
+    protected $properties = array();
 
-    public function __construct($props, $prop_types=null)
+    public function __construct($props, $propertyTypes = null)
     {
-        if($prop_types)
-            $this->prop_types = $prop_types;
-        else
-            $this->prop_types = self::$_properties;
-        $d = array();
-        if ($props)
-            $d = array_intersect_key($props, $this->prop_types);
-        else
+        if ($propertyTypes) {
+            $this->propertyTypes = $propertyTypes;
+        } else {
+            $this->propertyTypes = self::$propertyTable;
+        }
+        if ($props) {
+            $d = array_intersect_key($props, $this->propertyTypes);
+        } else {
             $d = array();
+        }
         $this->properties = $d;
     }
 
@@ -51,11 +67,13 @@ class GenericContent
      */
     public function get($name)
     {
-        if(isset($this->properties[$name]))
+        if (isset($this->properties[$name])) {
             return $this->properties[$name];
+        }
 
-        if(isset($this->delivery_info) && isset($this->delivery_info[$name]))
+        if (isset($this->delivery_info) && isset($this->delivery_info[$name])) {
             return $this->delivery_info[$name];
+        }
 
         throw new \OutOfBoundsException("No such property");
     }
@@ -69,20 +87,21 @@ class GenericContent
      */
     public function load_properties($rawBytes)
     {
-        $r = new Reader($rawBytes);
-
+        $reader = new Reader($rawBytes);
+        $flagBits = false;
         // Read 16-bit shorts until we get one with a low bit set to zero
         $flags = array();
         while (true) {
-            $flagBits = $r->readShort();
+            $flagBits = $reader->readShort();
             $flags[] = $flagBits;
-            if(($flagBits & 1) == 0)
+            if (($flagBits & 1) == 0) {
                 break;
+            }
         }
 
         $shift = 0;
-        $d = array();
-        foreach ($this->prop_types as $key => $proptype) {
+        $data = array();
+        foreach ($this->propertyTypes as $key => $proptype) {
             if ($shift == 0) {
                 if (!$flags) {
                     break;
@@ -92,12 +111,12 @@ class GenericContent
             }
             if ($flagBits & (1 << $shift)) {
                 $proptype = ucfirst($proptype);
-                $d[$key] = $r->{'read'.$proptype}();
+                $data[$key] = $reader->{'read' . $proptype}();
             }
 
             $shift -= 1;
         }
-        $this->properties = $d;
+        $this->properties = $data;
     }
 
     /**
@@ -118,21 +137,21 @@ class GenericContent
      * raw bytes making up a set of property flags and a property
      * list, suitable for putting into a content frame header.
      */
-    public function serialize_properties()
+    public function serializeProperties()
     {
         $shift = 15;
         $flagBits = 0;
         $flags = array();
         $rawBytes = new Writer();
 
-        foreach ($this->prop_types as $key => $proptype) {
+        foreach ($this->propertyTypes as $key => $proptype) {
             if (isset($this->properties[$key])) {
-                $val = $this->properties[$key];
+                $value = $this->properties[$key];
             } else {
-                $val = null;
+                $value = null;
             }
 
-            if ($val != null) {
+            if ($value != null) {
                 if ($shift == 0) {
                     $flags[] = $flagBits;
                     $flagBits = 0;
@@ -140,9 +159,9 @@ class GenericContent
                 }
 
                 $flagBits |= (1 << $shift);
-                if ($proptype != "bit") {
+                if ($proptype != 'bit') {
                     $proptype = ucfirst($proptype);
-                    $rawBytes->{'write'.$proptype}($val);
+                    $rawBytes->{'write' . $proptype}($value);
                 }
 
             }

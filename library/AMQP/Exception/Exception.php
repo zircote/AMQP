@@ -1,10 +1,11 @@
 <?php
 namespace AMQP\Exception;
+
 /**
  *
  */
 use AMQP\AbstractChannel;
-use AMQP\Helper;
+use AMQP\Util\Helper;
 
 /**
  *
@@ -36,7 +37,7 @@ class Exception extends \Exception
 
         $mn = isset(AbstractChannel::$globalMethodNames[ $ms ])
             ? AbstractChannel::$globalMethodNames[ $ms ]
-            : $mn = "";
+            : $mn = '';
 
         $this->args = array($replyCode, $replyText, $methodSig, $mn);
     }

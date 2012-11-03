@@ -17,10 +17,9 @@ use AMQP\Message;
 //suboptimal function to generate random content
 function generate_random_content($bytes)
 {
-    $handle = @fopen("/dev/urandom", "rb");
-
+    $handle = @fopen('/dev/urandom', 'rb');
+    $buffer = null;
     if ($handle) {
-        $buffer = '';
         $len = 0;
         $max = $bytes;
         while ($len < $max - 1) {
@@ -51,7 +50,7 @@ $msg = new Message($msg_body);
 
 $time = microtime(true);
 
-// Publishes $max messages using $msg_body as the content.
+// Publishes $max messages using $msgBody as the content.
 for ($i = 0; $i < $max; $i++) {
     $ch->basicPublish($msg, $exchange);
 }

@@ -1,5 +1,6 @@
 <?php
 namespace AMQP\Exception;
+
 /**
  *
  */
@@ -12,9 +13,9 @@ class ChannelException extends Exception
 {
 
     /**
-     * @param string     $replyCode
-     * @param int        $replyText
-     * @param \Exception $methodSig
+     * @param string       $replyCode
+     * @param int          $replyText
+     * @param array|string $methodSig
      */
     public function __construct($replyCode, $replyText, $methodSig)
     {
