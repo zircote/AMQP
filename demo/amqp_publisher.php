@@ -7,8 +7,8 @@ use AMQP\Message;
 $exchange = 'router';
 $queue = 'msgs';
 
-$conn = new Connection(AMQP_RESOURCE);
-$ch = $conn->channel();
+$connection = new Connection(AMQP_RESOURCE);
+$channel = $connection->channel();
 
 /*
     The following code is the same both in the consumer and the producer.
@@ -23,7 +23,7 @@ $ch = $conn->channel();
     exclusive: false // the queue can be accessed in other channels
     auto_delete: false //the queue won't be deleted once the channel is closed.
 */
-$ch->queueDeclare($queue, false, true, false, false);
+$channel->queueDeclare(array('queue' => $queue, 'durable' => true, 'auto_delete' => false));
 
 /*
     name: $exchange
@@ -33,13 +33,13 @@ $ch->queueDeclare($queue, false, true, false, false);
     auto_delete: false //the exchange won't be deleted once the channel is closed.
 */
 
-$ch->exchangeDeclare($exchange, 'direct', false, true, false);
+$channel->exchangeDeclare($exchange, 'direct', array('durable' => true, 'auto_delete' => false));
 
-$ch->queueBind($queue, $exchange);
+$channel->queueBind($queue, $exchange);
 
-$msg_body = implode(' ', array_slice($argv, 1));
-$msg = new Message($msg_body, array('content_type' => 'text/plain', 'delivery_mode' => 2));
-$ch->basicPublish($msg, $exchange);
+$messageBody = implode(' ', array_slice($argv, 1));
+$message = new Message($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => 2));
+$channel->basicPublish($message, $exchange);
 
-$ch->close();
-$conn->close();
+$channel->close();
+$connection->close();

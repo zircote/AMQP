@@ -1,8 +1,10 @@
 <?php
 namespace AMQP\Wire;
-/**
- *
- */
+
+    /**
+     *
+     */
+
 /**
  *
  */
@@ -28,9 +30,9 @@ class Writer
      *
      * @return array
      */
-    protected static function _chrByteSplit($x, $bytes)
+    protected static function chrByteSplit($x, $bytes)
     {
-        return array_map('chr', Writer::_byteSplit($x, $bytes));
+        return array_map('chr', Writer::byteSplit($x, $bytes));
     }
 
     /**
@@ -45,7 +47,7 @@ class Writer
      * @return array
      * @throws \Exception
      */
-    protected static function _byteSplit($x, $bytes)
+    protected static function byteSplit($x, $bytes)
     {
         if (is_int($x)) {
             if ($x < 0) {
@@ -57,24 +59,24 @@ class Writer
 
         while ($bytes > 0) {
             $b = bcmod($x, '256');
-            $res[ ] = (int)$b;
+            $res[] = (int)$b;
             $x = bcdiv($x, '256', 0);
             $bytes--;
         }
 
         $res = array_reverse($res);
 
-//        if ($x != 0) {
-//            throw new \Exception('Value too big!');
-//        }
+        //        if ($x != 0) {
+        //            throw new \Exception('Value too big!');
+        //        }
 
         return $res;
     }
 
-    protected function _flushBits()
+    protected function flushBits()
     {
         if (!empty($this->bits)) {
-            $this->out .= implode("", array_map('chr', $this->bits));
+            $this->out .= implode('', array_map('chr', $this->bits));
             $this->bits = array();
             $this->bitcount = 0;
         }
@@ -85,7 +87,7 @@ class Writer
      */
     public function getvalue()
     {
-        $this->_flushBits();
+        $this->flushBits();
         return $this->out;
     }
 
@@ -94,7 +96,7 @@ class Writer
      */
     public function write($s)
     {
-        $this->_flushBits();
+        $this->flushBits();
         $this->out .= $s;
         return $this;
     }
@@ -139,7 +141,7 @@ class Writer
             throw new \InvalidArgumentException('Octet out of range 0..255');
         }
 
-        $this->_flushBits();
+        $this->flushBits();
         $this->out .= chr($n);
         return $this;
     }
@@ -158,7 +160,7 @@ class Writer
             throw new \InvalidArgumentException('Octet out of range 0..65535');
         }
 
-        $this->_flushBits();
+        $this->flushBits();
         $this->out .= pack('n', $n);
         return $this;
     }
@@ -172,8 +174,8 @@ class Writer
      */
     public function writeLong($n)
     {
-        $this->_flushBits();
-        $this->out .= implode("", Writer::_chrByteSplit($n, 4));
+        $this->flushBits();
+        $this->out .= implode('', Writer::chrByteSplit($n, 4));
         return $this;
     }
 
@@ -184,7 +186,7 @@ class Writer
      */
     protected function _writeSignedLong($n)
     {
-        $this->_flushBits();
+        $this->flushBits();
         $this->out .= pack('N', $n);
         return $this;
     }
@@ -198,8 +200,8 @@ class Writer
      */
     public function writeLongLong($n)
     {
-        $this->_flushBits();
-        $this->out .= implode("", Writer::_chrByteSplit($n, 8));
+        $this->flushBits();
+        $this->out .= implode('', Writer::chrByteSplit($n, 8));
         return $this;
     }
 
@@ -214,7 +216,7 @@ class Writer
      */
     public function writeShortStr($s)
     {
-        $this->_flushBits();
+        $this->flushBits();
         if (strlen($s) > 255) {
             throw new \InvalidArgumentException('String too long');
         }
@@ -225,7 +227,7 @@ class Writer
     }
 
     /**
-    * Write a string up to 2**32 bytes long.  Assume UTF-8 encoding.
+     * Write a string up to 2**32 bytes long.  Assume UTF-8 encoding.
      *
      * @param $s
      *
@@ -233,7 +235,7 @@ class Writer
      */
     public function writeLongStr($s)
     {
-        $this->_flushBits();
+        $this->flushBits();
         $this->writeLong(strlen($s));
         $this->out .= $s;
         return $this;
@@ -249,7 +251,7 @@ class Writer
      */
     public function writeArray($a)
     {
-        $this->_flushBits();
+        $this->flushBits();
         $data = new Writer();
 
         foreach ($a as $v) {
@@ -298,7 +300,7 @@ class Writer
      */
     public function writeTable($d)
     {
-        $this->_flushBits();
+        $this->flushBits();
         $table_data = new Writer();
         foreach ($d as $k => $va) {
             list($ftype, $v) = $va;

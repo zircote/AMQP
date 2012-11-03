@@ -1,11 +1,29 @@
-# php-amqplib #
-
-This library is a _pure PHP_ implementation of the AMQP protocol.
-
-## Setup ##
+# AMQP #
 
 
-## Usage ##
+[![Build Status](https://secure.travis-ci.org/zircote/AMQP.png)](http://travis-ci.org/zircote/AMQP)
+
+Setup
+=============
+__git__
+
+    `git clone git://github.com/zircote/AMQP.git`
+
+__composer__
+
+```json
+{
+  "require": [
+    "zircote/amqp": "master-dev"
+  ]
+}
+```
+
+`composer install`
+
+
+Usage
+======
 
 host is defined by passing a URN string as first connection parameter:
 
@@ -32,10 +50,9 @@ $options = array(
 );
 $connection = new \AMQP\Connection($amqp, $options);
 
-
 ```
 
-With RabbitMQ running open two Terminals and on the first one execute the following commands to _start the consumer:
+With RabbitMQ running open two Terminals and on the first one execute the following commands to start the consumer:
 
     $ cd php-amqplib/demo
     $ php amqp_consumer.php
@@ -65,7 +82,6 @@ If you need to listen to the sockets used to connect to RabbitMQ then see the ex
 ## Loading Classes ##
 
     $ ant setup
-
 Place the following in your bootstrap once composer has been installed in the project:
 
 ```php
@@ -101,4 +117,12 @@ Once your environment is set up you can run your tests like this:
     $ ant build
 
 
+History
+============
 
+This project is a work in progress and derived from work begun by [php-amqplib](https://github.com/tnc/php-amqplib).
+It attempts to achieve a cleaner, more friendly use-case by updating the API, documentation and php 5.3 compatibility.
+Because there was no desire to perform these changes in the related projects due to outdating books and publication, it
+was my deciscion to fork and begin this work.
+
+For more information on its history please see this project.
