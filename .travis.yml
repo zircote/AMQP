@@ -1,7 +1,13 @@
 language: php
 
+before_script:
+  - composer install
+
 php:
   - 5.3
   - 5.4
 
-script: ant phpunit
+script: phpunit -c tests/phpunit.xml
+
+services:
+  rabbitmq
