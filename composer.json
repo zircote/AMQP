@@ -1,6 +1,7 @@
 {
     "name": "zircote/amqp",
     "type": "library",
+    "version": "1.0.0
     "description": "This library is a PHP implementation of the AMQP protocol.",
     "keywords": ["rabbitmq', 'message', 'queue', 'amqp"],
     "require": {
@@ -11,7 +12,5 @@
             "AMQP": "library",
             "AMQPTests" : "tests"
         }
-    },
-    "require": {
     }
 }
