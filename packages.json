@@ -1,0 +1,10 @@
+{
+    "packages": {
+        "zircote/amqp": {
+            "dev-master": { @composer.json },
+            "1.0.x-dev": { @composer.json },
+            "0.6.0": { @composer.json },
+            "1.0.0": { @composer.json }
+        }
+    }
+}

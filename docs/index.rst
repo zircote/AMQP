@@ -3,12 +3,16 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to AMQP's documentation!
+zircote/AMQP's docs.
 ================================
 
 Contents:
 
 .. toctree::
+   message
+   channel
+   connection
+   exchange
    :maxdepth: 2
 
 
@@ -17,6 +21,5 @@ Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
 
