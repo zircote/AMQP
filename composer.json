@@ -1,6 +1,11 @@
 {
     "name": "zircote/amqp",
     "type": "library",
+    "homepage": "https://github.com/zircote/AMQP",
+    "license": "LGPL-2.1",
+    "support": {
+        "issues": "https://github.com/zircote/AMQP/issues"
+    },
     "description": "This library is a PHP implementation of the AMQP protocol.",
     "keywords": ["rabbitmq", "message", "queue", "amqp"],
     "require": {
@@ -12,6 +17,12 @@
             "AMQPTests" : "tests"
         }
     },
-    "require": {
+    "extra": {
+        "branch-alias": {
+            "dev-master": "master-dev",
+            "dev-release-1.0.x": "master-dev",
+            "dev-release-0.6": "0.6.0-dev",
+            "dev-release-1.0.0": "1.0.0-dev"
+        }
     }
 }
