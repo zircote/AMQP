@@ -15,7 +15,7 @@ class FileTransferTest  extends AbstractTestCase
         $this->msgBody = file_get_contents(__DIR__.'/fixtures/data_1mb.bin');
 
         $msg = new Message($this->msgBody, array('delivery_mode' => 1));
-        $default = array('exchange' => $this->exchangeName, 'routingKey' => $this->queueName);
+        $default = array('exchange' => $this->exchangeName, 'routing_key' => $this->queueName);
         $this->channel->basicPublish($msg, $default);
 
         $default = array('queue' => $this->queueName, 'consumer_tag' => '', 'no_local' => false, 'no_ack' => false,

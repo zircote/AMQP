@@ -21,7 +21,7 @@ class PublishConsumeTest extends AbstractTestCase
             'reply_to' => 'my_reply_to'
         ));
 
-        $default = array('exchange' => $this->exchangeName, 'routingKey' => $this->queueName);
+        $default = array('exchange' => $this->exchangeName, 'routing_key' => $this->queueName);
         $this->channel->basicPublish($msg, $default);
 
         $default = array('queue' => $this->queueName, 'consumer_tag' => getmypid(), 'no_local' => false, 'no_ack' => false,

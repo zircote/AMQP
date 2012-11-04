@@ -311,7 +311,7 @@ class FrameBuilder
         $args = new Writer();
         $args->writeShort($options['ticket'])
             ->writeShortStr($options['exchange'])
-            ->writeShortStr($options['routingKey'])
+            ->writeShortStr($options['routing_key'])
             ->writeBit($options['mandatory'])
             ->writeBit($options['immediate']);
         return $args;

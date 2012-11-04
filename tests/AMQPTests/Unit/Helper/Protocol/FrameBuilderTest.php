@@ -173,7 +173,7 @@ class FrameBuilderTest extends \PHPUnit_Framework_TestCase
     public function testBasicPublish()
     {
         $expected = "\x00\x00\x03foo\x03bar\x00";
-        $default = array('exchange' => 'foo', 'routingKey' => 'bar', 'mandatory' => false, 'immediate' => false,
+        $default = array('exchange' => 'foo', 'routing_key' => 'bar', 'mandatory' => false, 'immediate' => false,
                          'ticket' => 0);
         $args = $this->frameBuilder->basicPublish($default);
         $this->assertEquals($expected, $args->getvalue());

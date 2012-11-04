@@ -798,7 +798,7 @@ class Channel extends AbstractChannel
      * basicPublish($msg,
      *  array(
      *      'exchange' => '',
-     *      'routingKey' => '',
+     *      'routing_key' => '',
      *      'mandatory' => false,
      *      'immediate' => false,
      *      'ticket' => null)
@@ -806,7 +806,7 @@ class Channel extends AbstractChannel
      */
     public function basicPublish( \AMQP\Message $msg, $options = array())
     {
-        $default = array('exchange' => '', 'routingKey' => '', 'mandatory' => false, 'immediate' => false,
+        $default = array('exchange' => '', 'routing_key' => '', 'mandatory' => false, 'immediate' => false,
                          'ticket' => null);
         $options = array_merge($default, $options);
         $options['ticket'] = $this->getTicket($options['ticket']);
