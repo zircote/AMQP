@@ -1,24 +1,40 @@
 <?php
 namespace AMQP\Wire;
-/**
- *
- */
+
+    /**
+     *
+     */
+
 /**
  *
  */
 class BufferedInput
 {
-    protected $_sock;
+    /**
+     * @var resource
+     */
+    protected $sock;
+    /**
+     * @var string
+     */
+    protected $buffer;
+    /**
+     * @var int
+     */
+    protected $offset;
+    /**
+     * @var int
+     */
+    protected $blockSize = 8192;
 
     /**
      * @param $sock
      */
     public function __construct($sock)
     {
-        $this->block_size = 8192;
 
-        $this->_sock = $sock;
-        $this->_reset('');
+        $this->sock = $sock;
+        $this->reset('');
 
     }
 
@@ -27,7 +43,7 @@ class BufferedInput
      */
     public function realSock()
     {
-        return $this->_sock;
+        return $this->sock;
     }
 
     /**
@@ -37,14 +53,12 @@ class BufferedInput
      */
     public function read($n)
     {
-        if ($this->offset >= strlen($this->buffer))
-        {
-            if (!($rv = $this->_populateBuffer()))
-            {
+        if ($this->offset >= strlen($this->buffer)) {
+            if (!($rv = $this->populateBuffer())) {
                 return $rv;
             }
         }
-        return $this->_readBuffer($n);
+        return $this->readBuffer($n);
     }
 
     /**
@@ -52,8 +66,8 @@ class BufferedInput
      */
     public function close()
     {
-        fclose($this->_sock);
-        $this->_reset("");
+        fclose($this->sock);
+        $this->reset('');
     }
 
     /**
@@ -61,15 +75,14 @@ class BufferedInput
      *
      * @return string
      */
-    protected function _readBuffer($n)
+    protected function readBuffer($n)
     {
         $n = min($n, strlen($this->buffer) - $this->offset);
-        if ($n === 0)
-        {
-            // substr("", 0, 0) => false, which screws up read loops that are
-            // expecting non-blocking reads to return "". This avoids that edge
+        if ($n === 0) {
+            // substr('', 0, 0) => false, which screws up read loops that are
+            // expecting non-blocking reads to return ''. This avoids that edge
             // case when the buffer is empty/used up.
-            return "";
+            return '';
         }
         $block = substr($this->buffer, $this->offset, $n);
         $this->offset += $n;
@@ -79,7 +92,7 @@ class BufferedInput
     /**
      * @param $block
      */
-    protected function _reset($block)
+    protected function reset($block)
     {
         $this->buffer = $block;
         $this->offset = 0;
@@ -88,21 +101,18 @@ class BufferedInput
     /**
      * @return bool|string
      */
-    protected function _populateBuffer()
+    protected function populateBuffer()
     {
-        if(feof($this->_sock))
-        {
-            $this->_reset("");
+        if (feof($this->sock)) {
+            $this->reset('');
             return false;
         }
 
-        $block = fread($this->_sock, $this->block_size);
-        if ($block !== false)
-        {
-            $this->_reset($block);
+        $block = fread($this->sock, $this->blockSize);
+        if ($block !== false) {
+            $this->reset($block);
             return true;
-        } else
-        {
+        } else {
             return $block;
         }
     }

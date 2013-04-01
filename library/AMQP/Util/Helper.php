@@ -1,8 +1,10 @@
 <?php
-namespace AMQP;
-/**
- *
- */
+namespace AMQP\Util;
+
+    /**
+     *
+     */
+
 /**
  *
  */
@@ -31,7 +33,7 @@ class Helper
         if (is_string($a)) {
             return $a;
         } else {
-            return sprintf("%d,%d", $a[ 0 ], $a[ 1 ]);
+            return sprintf("%d,%d", $a[0], $a[1]);
         }
     }
 
@@ -66,8 +68,7 @@ class Helper
      *
      * @return string
      */
-    public static function hexdump($data, $htmloutput = true,
-                                   $uppercase = false, $return = false)
+    public static function hexdump($data, $htmloutput = true, $uppercase = false, $return = false)
     {
         $hexi = '';
         $ascii = '';
@@ -77,12 +78,14 @@ class Helper
         $dump = ($htmloutput === true) ? '<pre>' : '';
 
         for ($i = $j = 0; $i < $len; $i++) {
-            $hexi .= sprintf("%02$x ", ord($data[ $i ]));
+            $hexi .= sprintf("%02$x ", ord($data[$i]));
 
-            if (ord($data[ $i ]) >= 32) {
-                $ascii .= ($htmloutput === true) ?
-                    htmlentities($data[ $i ]) :
-                    $data[ $i ];
+            if (ord($data[$i]) >= 32) {
+                $ascii .= ($htmloutput === true)
+                    ?
+                    htmlentities($data[$i])
+                    :
+                    $data[$i];
             } else {
                 $ascii .= '.';
             }

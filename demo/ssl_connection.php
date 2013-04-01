@@ -15,12 +15,12 @@ $options = array(
     )
 );
 
-$conn = new Connection(AMQP_SSL_RESOURCE, $options);
+$connection = new Connection(AMQP_SSL_RESOURCE, $options);
 
 register_shutdown_function(
-    function() use ($conn)
+    function() use ($connection)
     {
-        $conn->close();
+        $connection->close();
     }
 );
 

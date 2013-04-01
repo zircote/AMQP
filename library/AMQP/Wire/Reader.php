@@ -1,5 +1,6 @@
 <?php
 namespace AMQP\Wire;
+
 /**
  *
  */
@@ -48,10 +49,12 @@ class Reader
     protected $_bufferedInput;
 
     /**
-     * @param string $str
-     * @param null   $bufferedInput
+     * @param      $str
+     * @param resource $bufferedInput
+     *
+     * @throws \RuntimeException
      */
-    public function __construct($str, $bufferedInput = false)
+    public function __construct($str, $bufferedInput = null)
     {
         $this->_str = $str;
         if ($bufferedInput) {

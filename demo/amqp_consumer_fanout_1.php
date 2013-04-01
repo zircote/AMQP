@@ -8,10 +8,10 @@ use AMQP\Connection;
 
 $exchange = 'fanout_example_exchange';
 $queue = 'fanout_group_1';
-$consumer_tag = 'consumer' . getmypid();
+$consumerTag = 'consumer' . getmypid();
 
-$conn = new Connection(AMQP_RESOURCE);
-$ch = $conn->channel();
+$connection = new Connection(AMQP_RESOURCE);
+$channel = $connection->channel();
 
 /*
     name: $queue    // should be unique in fanout exchange.
@@ -20,7 +20,7 @@ $ch = $conn->channel();
     exclusive: false // the queue might be accessed by other channels
     auto_delete: true //the queue will be deleted once the channel is closed.
 */
-$ch->queueDeclare($queue, false, false, false, true);
+$channel->queueDeclare(array('queue' => $queue));
 
 /*
     name: $exchange
@@ -30,9 +30,9 @@ $ch->queueDeclare($queue, false, false, false, true);
     auto_delete: true //the exchange will be deleted once the channel is closed.
 */
 
-$ch->exchangeDeclare($exchange, 'fanout', false, false, true);
+$channel->exchangeDeclare($exchange, 'fanout');
 
-$ch->queueBind($queue, $exchange);
+$channel->queueBind($queue, $exchange);
 
 function process_message($msg)
 {
@@ -62,20 +62,20 @@ function process_message($msg)
     callback: A PHP Callback
 */
 
-$ch->basicConsume(
-    $queue, $consumer_tag, false, false, false, false, 'process_message'
+$channel->basicConsume(
+    array('queue' => $queue, 'consumer_tag' => $consumerTag, 'callback' => 'process_message')
 );
 
 register_shutdown_function(
-    function() use ($ch, $conn)
+    function() use ($channel, $connection)
     {
-        $ch->close();
-        $conn->close();
+        $channel->close();
+        $connection->close();
     }
 );
 
 // Loop as long as the channel has callbacks registered
-while (count($ch->callbacks)) {
-    $ch->wait();
+while (count($channel->callbacks)) {
+    $channel->wait();
 }
 

@@ -1,8 +1,10 @@
 <?php
 namespace AMQP\Wire;
+
 /**
  *
  */
+
 /**
  * AMQP protocol decimal value.
  *
@@ -20,24 +22,26 @@ class Decimal
     /**
      * @var int
      */
-    protected $_number;
+    protected $number;
 
     /**
      * @var int
      */
-    protected $_power;
+    protected $power;
 
     /**
      * @param int $number
      * @param int $power
+     *
+     * @throws \Exception
      */
     public function __construct($number, $power)
     {
-        if ($this->_power < 0) {
+        if ($this->power < 0) {
             throw new \Exception('Decimal exponent value must be unsigned!');
         }
-        $this->_number = $number;
-        $this->_power = $power;
+        $this->number = $number;
+        $this->power = $power;
     }
 
     /**
@@ -45,6 +49,6 @@ class Decimal
      */
     public function asBCvalue()
     {
-        return bcdiv($this->_number, bcpow(10, $this->_power));
+        return bcdiv($this->number, bcpow(10, $this->power));
     }
 }

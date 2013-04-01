@@ -42,7 +42,7 @@ $time = microtime(true);
 
 $max = isset($argv[ 1 ]) ? (int)$argv[ 1 ] : 1;
 
-// Publishes $max messages using $msg_body as the content.
+// Publishes $max messages using $msgBody as the content.
 for ($i = 0; $i < $max; $i++) {
     $ch->basicPublish($msg, $exchange);
 }

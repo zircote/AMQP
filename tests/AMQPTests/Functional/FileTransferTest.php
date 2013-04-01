@@ -1,5 +1,4 @@
 <?php
-
 namespace AMQPTests\Functional;
 
 use AMQP\Connection;
@@ -8,63 +7,23 @@ use AMQP\Message;
 /**
  * @group File
  */
-class FileTransferTest extends  \PHPUnit_Framework_TestCase
+class FileTransferTest  extends AbstractTestCase
 {
-
-
-    /**
-     * @var string
-     */
-    protected $exchange_name = 'test_exchange';
-
-    /**
-     * @var null
-     */
-    protected $queue_name = null;
-
-    /**
-     * @var \AMQP\Connection
-     */
-    protected $conn;
-
-    /**
-     * @var \AMQP\Channel
-     */
-    protected $ch;
-
-    /**
-     * @var string
-     */
-    protected  $msg_body;
-
-    public function setUp()
-    {
-        $this->conn = new Connection(AMQP_TEST_HOST);
-        $this->ch = $this->conn->channel();
-        $this->ch->exchangeDeclare($this->exchange_name, 'direct', false, false, false);
-        list($this->queue_name,,) = $this->ch->queueDeclare();
-        $this->ch->queueBind($this->queue_name, $this->exchange_name, $this->queue_name);
-    }
 
     public function testSendFile()
     {
-        $this->msg_body = file_get_contents(__DIR__.'/fixtures/data_1mb.bin');
+        $this->msgBody = file_get_contents(__DIR__.'/fixtures/data_1mb.bin');
 
-        $msg = new Message($this->msg_body, array('delivery_mode' => 1));
-        $this->ch->basicPublish($msg, $this->exchange_name, $this->queue_name);
+        $msg = new Message($this->msgBody, array('delivery_mode' => 1));
+        $default = array('exchange' => $this->exchangeName, 'routing_key' => $this->queueName);
+        $this->channel->basicPublish($msg, $default);
 
-        $this->ch->basicConsume(
-            $this->queue_name,
-            '',
-            false,
-            false,
-            false,
-            false,
-            array($this, 'process_msg')
-        );
+        $default = array('queue' => $this->queueName, 'consumer_tag' => '', 'no_local' => false, 'no_ack' => false,
+                         'exclusive' => false, 'no_wait' => false, 'callback' => array($this, 'process_msg'));
+        $this->channel->basicConsume($default);
 
-        while (count($this->ch->callbacks)) {
-            $this->ch->wait();
+        while (count($this->channel->callbacks)) {
+            $this->channel->wait();
         }
     }
 
@@ -75,15 +34,7 @@ class FileTransferTest extends  \PHPUnit_Framework_TestCase
         $msg->delivery_info['channel']
             ->basicCancel($msg->delivery_info['consumer_tag']);
 
-        $this->assertEquals($this->msg_body, $msg->body);
+        $this->assertEquals($this->msgBody, $msg->body);
     }
 
-    public function tearDown()
-    {
-        if($this->ch){
-            $this->ch->exchangeDelete($this->exchange_name);
-            $this->ch->close();
-            $this->conn->close();
-        }
-    }
 }
