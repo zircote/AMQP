@@ -826,10 +826,10 @@ class Connection extends AbstractChannel
         if ($this->debug) {
             Helper::debugMsg('closing socket');
         }
-        if (is_resource($this->_sock)) {
-            @fclose($this->_sock);
+        if (is_resource($this->sock)) {
+            @fclose($this->sock);
         }
-        $this->_sock = null;
+        $this->sock = null;
     }
 
     /**
