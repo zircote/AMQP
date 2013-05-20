@@ -285,6 +285,12 @@ class Reader
             while ($read < $n && !feof($this->_bufferedInput->realSock()) &&
                    (false !== ($buffer = fread($this->_bufferedInput->realSock(), $n - $read)))
             ) {
+                // get status of socket to determine whether or not it has timed out
+                $info = stream_get_meta_data($this->_bufferedInput->realSock());
+                if($info['timed_out']) {
+                    throw new \Exception('Error reading data. Socket connection timed out');
+                }
+
                 $read += strlen($buffer);
                 $result .= $buffer;
             }

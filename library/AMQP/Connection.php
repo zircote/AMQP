@@ -302,7 +302,9 @@ class Connection extends AbstractChannel
             );
         }
 
-        stream_set_timeout($this->sock, $this->options['read_write_timeout']);
+        if (!stream_set_timeout($this->sock, $this->options['read_write_timeout'])) {
+            throw new \Exception('Timeout could not be set');
+        }
         stream_set_blocking($this->sock, true);
     }
 
@@ -372,6 +374,10 @@ class Connection extends AbstractChannel
             }
             if ($written === 0) {
                 throw new \Exception ('Broken pipe or closed connection');
+            }
+            $info = stream_get_meta_data($this->sock);
+            if ($info['timed_out']) {
+                throw new \Exception("Error sending data. Socket connection timed out");
             }
             $len = $len - $written;
             if ($len > 0) {
@@ -826,10 +832,10 @@ class Connection extends AbstractChannel
         if ($this->debug) {
             Helper::debugMsg('closing socket');
         }
-        if (is_resource($this->_sock)) {
-            @fclose($this->_sock);
+        if (is_resource($this->sock)) {
+            @fclose($this->sock);
         }
-        $this->_sock = null;
+        $this->sock = null;
     }
 
     /**
